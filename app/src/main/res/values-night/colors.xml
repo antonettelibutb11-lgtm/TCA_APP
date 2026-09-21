@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_main">#121212</color>
+    <color name="card_bg">#1E1E1E</color>
+    <color name="card_stroke">#333333</color>
+    <color name="divider_color">#2C2C2C</color>
+    <color name="input_field_bg">#2C2C2C</color>
+    <color name="media_bar_bg">#1E1E1E</color>
+    <color name="card_selected_bg">#3B1A4F</color>
+    <color name="card_selected_stroke">#C86BFA</color>
+
+    <color name="text_primary">#FFFFFF</color>
+    <color name="purple_primary_text">#FFFFFF</color>
+    <color name="text_secondary">#CCBBDD</color>
+    <color name="text_muted">#9A84AD</color>
+
+    <color name="chip_bg">#2A1D36</color>
+    <color name="chip_unselected_bg">#2A1A3E</color>
+    <color name="calendar_date_bg">#FFFFFF</color>
+    <color name="calendar_date_text">#5C0099</color>
+    <color name="radio_tint">#FFFFFF</color>
+</resources>

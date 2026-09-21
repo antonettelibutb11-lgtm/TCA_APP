@@ -1,0 +1,211 @@
+{"users": [
+{
+  "localId": "0aCBhh0ytrZLlSmtPFFLKCe2wtp2",
+  "email": "bal_4545@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "WYBGjGIgkMBfk9N2eD3v6rqd1VyQtRyP0hIE5zJva96Bw1/REgghFGwBNIQiLnPQsx4LzfqdZlEOnN+zVd37rw==",
+  "salt": "5MKx0TB+5qB//g==",
+  "lastSignedInAt": "1786803223437",
+  "createdAt": "1786803223437",
+  "providerUserInfo": []
+},
+{
+  "localId": "FNJ3KFTEBFZMCWgwgiWHsrRkwoW2",
+  "email": "bshvf_234@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "KhZpkHr5tJ8r+VBOEv1CQY3RrMFtsPgF9zkL+PhA8HUDliCmOqnCWd1kr3oimuFFZ4N42BTjp9YifjXupX8J2A==",
+  "salt": "ozBW+hWIbVImVw==",
+  "lastSignedInAt": "1785646470320",
+  "createdAt": "1785646470320",
+  "providerUserInfo": []
+},
+{
+  "localId": "HCkCWYNytXhVRZIQLiRry3LRN1y1",
+  "email": "bal_342913@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "YoFUafxSZrGhrurc0O+7H+4Ma3lrxqm9TCaqkpWoIhK87bYKdFzZqzJWZFgBUpR2+t1i+scYu9HihfB8rMIi7A==",
+  "salt": "1OTeX8vaNKcnbA==",
+  "lastSignedInAt": "1785644091612",
+  "createdAt": "1785643934471",
+  "providerUserInfo": []
+},
+{
+  "localId": "MDF2LzfmapO5i9PW982sjRJQ7oi1",
+  "email": "bal_7777@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "DyCqBgldyxchyGGQy/6WUyGXcKNWW+aYz+AwXYkz1fTyX6Fxdg70b/xe2BzAmnZN4yt327FjoCFAeRB5pfnN2Q==",
+  "salt": "XHuVzN/0h3JGYw==",
+  "lastSignedInAt": "1786922231129",
+  "createdAt": "1786922231129",
+  "providerUserInfo": []
+},
+{
+  "localId": "Mq77kXJWwMODCQAuItXTBsyr4go2",
+  "email": "bal_9999@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "oWEncHHhBfRlPf89DXguV0CEK9pm4mcv7A3zCKx0Q5M+W6elvquFBqFmRDgwge9UmIXjqlkUfztXhR9wYtIShQ==",
+  "salt": "ic7QM7ghiViBFA==",
+  "lastSignedInAt": "1786922291025",
+  "createdAt": "1786922291025",
+  "providerUserInfo": []
+},
+{
+  "localId": "OFGU0CK7sCZOatqmRWq2WunWZc62",
+  "email": "frbfrh@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "87s3VPjvObRnbnavoFnx53Jd9/0FKhbTgdWF6U7MRsf5T2wU0opArBN8aKE+fB2fYBYVINjW83x01JxR+4P7DQ==",
+  "salt": "WYog9nwdv1nLPA==",
+  "lastSignedInAt": "1785681580911",
+  "createdAt": "1785681580911",
+  "providerUserInfo": []
+},
+{
+  "localId": "QLTj9KluXjPprDpBM0hGU8LsJio1",
+  "email": "bal_1234@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "bBw7Mz05zKU9KhB0lIbbosgo9ZzZpdi4VcW85mlqOJDvt2Cpw4PtjRMo7VqYeD6UsEvw3+15yvxlCVtiUbCexQ==",
+  "salt": "pCObckdyFFbbZg==",
+  "lastSignedInAt": "1785861358137",
+  "createdAt": "1785853983021",
+  "providerUserInfo": []
+},
+{
+  "localId": "T8cRPUvVnSbK5qfUmyLEcY5oMRu1",
+  "email": "aed_1234@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "+BelqSCTwHUQ1ub2MHkY6peDnx+66MR5RhtVf8SDYmmUX8k4dXZmX7/vWFsNaq99qhsGPMSTV+RmWtmr09yNrQ==",
+  "salt": "pDvLpVXIH81rRg==",
+  "lastSignedInAt": "1786027441877",
+  "createdAt": "1786027441877",
+  "providerUserInfo": []
+},
+{
+  "localId": "UEumqtY14UXyltTS5lg7tzxmyiQ2",
+  "email": "dfbyf@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "09UtSbQiZU8sfusVEX/etUmXJXGJHq3fHUXKFQafrlc3NzXQdwQqunTFPWa0e9BTz+2Ffoziv8ajKlpsEnYkTA==",
+  "salt": "ZfjVWPdBe8xsGA==",
+  "lastSignedInAt": "1785670679788",
+  "createdAt": "1785670679788",
+  "providerUserInfo": []
+},
+{
+  "localId": "VdfUHllOr9Slu02B8qpl34jLCYy1",
+  "email": "bal_0909@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "iQnNrz0FlWA3KJuKQLgE7m3GmlNpc3KD0ScMHCPfPmJhQjaxVm/0FPdaay79w9gUa+3CeiGU+uu6HSUZ7/IO9w==",
+  "salt": "k8aRkVTiFd3B8w==",
+  "lastSignedInAt": "1786803617055",
+  "createdAt": "1786803617055",
+  "providerUserInfo": []
+},
+{
+  "localId": "VoCPz8OW4WYDcQbV1WcEAPyyMUt2",
+  "email": "bfeyhvf@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "yjYcoNLfhSe0oG1Oll+ODzrfTElrO+O34A1IIviUsqopcSZxOgtCj1qRLC08cqV3BSkRwF7FP2AAyS7LTHIqog==",
+  "salt": "L/D54KdqEP9Rqg==",
+  "lastSignedInAt": "1785646880168",
+  "createdAt": "1785646880168",
+  "providerUserInfo": []
+},
+{
+  "localId": "aX01vrUHQ8h6iNDh0UJYGv7acL53",
+  "email": "bal_342914@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "wMJGOdQQijetl9I6spCKXo73hG5+ZUBecgC0w1r7JQEe3lfaB1afQIzkEaoiMFG2Ejt0dKdL5GUIV3jlgOW8Ew==",
+  "salt": "zCTgghDxX3zRQg==",
+  "lastSignedInAt": "1786020394325",
+  "createdAt": "1786020394325",
+  "providerUserInfo": []
+},
+{
+  "localId": "dcfmNPyzwPULCAC359rRnZf9sju2",
+  "email": "bal_6666@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "/N/UZfIfZB+TfZOxUZTDZcrlYoU+/h4Me0nuQh18dicFaNNsjQbRNcP6mkpqoW/N4bf0VyguA8+rWFOKw5JYlQ==",
+  "salt": "ozGM2flH611s+A==",
+  "lastSignedInAt": "1786899555108",
+  "createdAt": "1786899555108",
+  "providerUserInfo": []
+},
+{
+  "localId": "h0HojxXSixQN1GXLYOavlA3HNVI3",
+  "email": "angelica.terec@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "SKyd/mdThpCl3suVOXvYFE35sNOgnku7iAj1SFjlxRG1ss6U2B4XDI1T5wRjqIQQAMe49LA6HgH79ulAfnb9gw==",
+  "salt": "2+tGgP5/mA/uUw==",
+  "lastSignedInAt": "1786936721915",
+  "createdAt": "1786936721915",
+  "providerUserInfo": []
+},
+{
+  "localId": "hmztJMaqMRg9Unm7riq8I7QmJ4i1",
+  "email": "bal_9999@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "IWEY7cscPJI5qJOksVwtkoOjaUvNo1nAbLVYFOluH0/zrqI7Ykq1QqN/mvaNkQjbWed3KlHspl0Tgl3DYbuxHQ==",
+  "salt": "0u92/iykt5q/cQ==",
+  "lastSignedInAt": "1786922291191",
+  "createdAt": "1786922291191",
+  "providerUserInfo": []
+},
+{
+  "localId": "j8wBsOfE5qgvGRTlbvfgMG6smZo2",
+  "email": "bal_4343@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "AXLVMMqqBJjoi4uTM9w/0pcgvQqA6ZzmFLRnaqLR9IXc9C8zUwmUwilXce6mjEg8wRflueFQz8r+BQhFB44oJg==",
+  "salt": "IwjDrU7/5cv2Bg==",
+  "lastSignedInAt": "1786803148014",
+  "createdAt": "1786803148014",
+  "providerUserInfo": []
+},
+{
+  "localId": "lD2rKuqL4bWDX7N7k8mQzurIWaU2",
+  "email": "bal_23456@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "hzBRAgy9mR1Q+IJEk2Q6+1ruqbnWlmmPOCNRXa44cOgTwxXitXvyornHSVbOnYMWwkDXRK7lfisnqmoWD42VbA==",
+  "salt": "2X073weyfY4vNg==",
+  "lastSignedInAt": "1786800290088",
+  "createdAt": "1786800290088",
+  "providerUserInfo": []
+},
+{
+  "localId": "tScacuWrxXMmZ0Flm1dT3hk6T3Z2",
+  "email": "bal_2323@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "subgggIuEzi9/PHTIvfBqL+bilGQr3VYJBSbdGjmcV3EzeEcscd0mDrgxWYIm8YwXS5dK93j/DyFOAJ8lM5dZg==",
+  "salt": "uYJnCsJcWfDmPA==",
+  "lastSignedInAt": "1786898873772",
+  "createdAt": "1786898873772",
+  "providerUserInfo": []
+},
+{
+  "localId": "teEItVnMIGWlTtn3yhMNTHYzZTE3",
+  "email": "bal_4444@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "XETQRMnNRUw29v+i2Lh8msXjO4SgbLyrplpf2UdoHnze2XZ9ypn52ZlgbQXv+8ino8Q8kjpSFsBKuKtj2fOA0g==",
+  "salt": "+YIM5VgJ1b6QIw==",
+  "lastSignedInAt": "1786899505352",
+  "createdAt": "1786899505352",
+  "providerUserInfo": []
+},
+{
+  "localId": "uEb9WDsjUGgr18goIBI5Ms5qsnW2",
+  "email": "bal_0909@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "neeKo6uffxhrNrGy3GP0ZrKeQWzrEJ1bYKw/GFAHD65rYFz7C88fBhDfUVeGYG6XMvL7s2IBhr7rpwRFnlVJwA==",
+  "salt": "H8BIrkg7S8FL2A==",
+  "lastSignedInAt": "1786803617054",
+  "createdAt": "1786803617054",
+  "providerUserInfo": []
+},
+{
+  "localId": "uuhrhk7KEzSnCmhYzTloePJEOeD3",
+  "email": "val_342913@bisu.edu.ph",
+  "emailVerified": false,
+  "passwordHash": "+4bubO34YJy+QLRPCq7U1Mxb6AvkqE2M+rhXL4tdcsGhBtVet9f0ZEc+DsfaJwUaJRbTrqx4YJc/5MrjsMfn9w==",
+  "salt": "sVUd5WkAMoKRQw==",
+  "lastSignedInAt": "1785856508010",
+  "createdAt": "1785856508010",
+  "providerUserInfo": []
+}]}

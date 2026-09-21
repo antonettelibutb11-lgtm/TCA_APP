@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:name=".TcaApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/ic_bisu_logo_hd"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_bisu_logo_hd"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TCA_APP">
+
+        <!-- Welcome Activity (Launcher Entry) -->
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Login Activity -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+
+        <!-- Main Activity (Host Activity with Bottom Navigation) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
+
+        <!-- Create Post Activity -->
+        <activity
+            android:name=".CreatePostActivity"
+            android:exported="false" />
+
+        <!-- QR Code Attendance Scanner Activity -->
+        <activity
+            android:name=".QRScannerActivity"
+            android:exported="false" />
+
+        <!-- Direct Messaging Activity -->
+        <activity
+            android:name=".MessageActivity"
+            android:exported="false" />
+
+        <!-- Admin Student Inquiries & Messages Inbox Activity -->
+        <activity
+            android:name=".AdminInboxActivity"
+            android:exported="false" />
+
+        <!-- Full Screen Image Viewer Activity -->
+        <activity
+            android:name=".FullScreenImageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Full Screen Video Viewer Activity -->
+        <activity
+            android:name=".FullScreenVideoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- FCM Push Notification Service -->
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- FileProvider for HD Camera Capture -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Media Viewer Activity -->
+        <activity
+            android:name=".MediaViewerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:exported="false" />
+
+        <!-- Dark Mode Settings Activity -->
+        <activity
+            android:name=".DarkModeActivity"
+            android:exported="false" />
+    </application>
+
+</manifest>

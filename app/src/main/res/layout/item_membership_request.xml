@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_card_white"
+    android:elevation="1dp"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/tvStudentName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-bold"
+        android:text="Student Name"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvStudentEmail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="student@bisu.edu.ph"
+        android:textColor="@color/purple_primary_text"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tvRequestMeta"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Pending Approval • Campus Access Member Request"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnApproveMember"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_purple_button"
+            android:fontFamily="sans-serif-bold"
+            android:text="✅ Approve"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnRejectMember"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_pill_red_solid"
+            android:fontFamily="sans-serif-bold"
+            android:text="❌ Reject"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</LinearLayout>

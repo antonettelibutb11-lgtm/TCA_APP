@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">The Campus Access Hub</string>
+    <string name="app_tagline">Your Dedicated Community Platform</string>
+    <string name="university_name">Bohol Island State University - Balilihan</string>
+
+    <string name="google_web_client_id">341652650977-vmb647pfjb9l4lu935bv3id2nsm6b6d1.apps.googleusercontent.com</string>
+    <string name="btn_get_started">Get Started</string>
+
+    <string name="title_campus_events">Campus Events &amp; Attendance</string>
+    <string name="title_analytics_dashboard">Analytics &amp; Dashboard</string>
+    <string name="title_student_login">The Campus Access\nStudent Login</string>
+    <string name="title_admin_login">The Campus Access\nAdmin Login</string>
+    <string name="login_welcome">Welcome, BISU-Balilihan community!</string>
+
+    <string name="time_just_now">Just now</string>
+    <string name="time_min_ago">1 min ago</string>
+    <string name="time_mins_ago">%d mins ago</string>
+    <string name="time_hr_ago">1 hr ago</string>
+    <string name="time_hrs_ago">%d hrs ago</string>
+    <string name="time_day_ago">1 day ago</string>
+    <string name="time_days_ago">%d days ago</string>
+    <string name="category_default_events">Events</string>
+
+    <string name="error_empty_name">Please enter your full name</string>
+    <string name="error_empty_username">Please enter your campus username</string>
+    <string name="error_empty_email">Please enter your BISU email</string>
+    <string name="error_bisu_email_required">Access Denied: Email must end with @bisu.edu.ph</string>
+    <string name="error_password_length">Password must be at least 6 characters</string>
+    <string name="error_confirm_password_required">Confirm Password is required!</string>
+    <string name="error_password_mismatch">Password and Confirm Password must match!</string>
+    <string name="error_db_verify_denied">❌ Access Denied! Email not registered in official BISU records or database verification failed.</string>
+    <string name="error_incorrect_password">❌ Incorrect password. Please try again.</string>
+    <string name="msg_login_success">Firebase Login Successful! Welcome %1$s (@%2$s)</string>
+
+    <string name="theme_system_default">System Default</string>
+    <string name="theme_light_mode">Light Mode</string>
+    <string name="theme_dark_mode">Dark Mode</string>
+</resources>

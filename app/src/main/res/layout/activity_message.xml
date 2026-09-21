@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/chatHeaderBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="#3D0066"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp">
+
+        <ImageView
+            android:id="@+id/btnBackChat"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Back"
+            android:focusable="true"
+            android:padding="4dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/white" />
+
+        <RelativeLayout
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp">
+
+            <ImageView
+                android:id="@+id/imgChatUserAvatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="User Avatar"
+                android:src="@drawable/ic_bisu_logo_hd" />
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentBottom="true"
+                android:background="@drawable/bg_pill_green_solid" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvChatRecipientName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-black"
+                android:maxLines="1"
+                android:text="The Campus Access"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvChatRecipientStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Official BISU Balilihan Publication • Active Now"
+                android:textColor="#FFEE32"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvChatMessages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingVertical="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#3D0066"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chat_input_white_card"
+            android:orientation="vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="8dp">
+
+            <EditText
+                android:id="@+id/etChatMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:fontFamily="sans-serif"
+                android:hint="Type a message..."
+                android:minHeight="36dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="#9E9E9E"
+                android:textSize="14.5sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/btnAttachCamera"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="Camera"
+                    android:focusable="true"
+                    android:padding="3dp"
+                    android:src="@drawable/ic_camera"
+                    app:tint="@color/purple_primary" />
+
+                <ImageView
+                    android:id="@+id/btnAttachGallery"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="10dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="Gallery"
+                    android:focusable="true"
+                    android:padding="3dp"
+                    android:src="@drawable/ic_image"
+                    app:tint="@color/purple_primary" />
+
+                <ImageView
+                    android:id="@+id/btnAttachFile"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="10dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="File"
+                    android:focusable="true"
+                    android:padding="3dp"
+                    android:src="@drawable/ic_attach_file"
+                    app:tint="@color/purple_primary" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/btnSendMessage"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_purple_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:contentDescription="Send"
+                android:src="@drawable/ic_paper_plane"
+                app:tint="@color/white" />
+        </FrameLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

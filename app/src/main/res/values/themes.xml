@@ -1,0 +1,41 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.TCA_APP" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/purple_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/gold_accent</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+        <item name="android:statusBarColor">@color/purple_dark</item>
+        <item name="android:windowBackground">@color/bg_main</item>
+        <item name="android:datePickerDialogTheme">@style/CustomDatePickerDialog</item>
+        <item name="android:timePickerDialogTheme">@style/CustomDatePickerDialog</item>
+    </style>
+
+    <style name="Theme.TCA_APP" parent="Base.Theme.TCA_APP" />
+
+    <style name="CustomDatePickerDialog" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="colorPrimary">@color/purple_primary</item>
+        <item name="colorPrimaryVariant">@color/purple_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/gold_accent</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorAccent">@color/gold_accent</item>
+        <item name="android:colorAccent">@color/gold_accent</item>
+        <item name="android:colorControlActivated">@color/gold_accent</item>
+        <item name="colorSurface">@color/card_bg</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:windowBackground">@color/card_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/CustomPickerButtonStyle</item>
+        <item name="buttonBarNegativeButtonStyle">@style/CustomPickerButtonStyle</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/CustomPickerButtonStyle</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/CustomPickerButtonStyle</item>
+    </style>
+
+    <style name="CustomPickerTheme" parent="CustomDatePickerDialog" />
+
+    <style name="CustomPickerButtonStyle" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/gold_accent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

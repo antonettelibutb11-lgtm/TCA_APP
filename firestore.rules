@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 1. Users Collection
+    match /users/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 2. Official Student & Staff Databases
+    match /official_students/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /official_staff/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 3. Event Attendance Collection
+    match /event_attendance/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 4. Posts Collection and all subcollections (likes, comments, replies, reactions)
+    match /posts/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 5. Moderation Queue Collection
+    match /moderation_queue/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 6. Lost & Found Marketplace Collection
+    match /lost_found/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 7. Notifications Collection
+    match /notifications/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 8. Analytics Summary
+    match /analytics_summary/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 9. Events Collection
+    match /events/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 10. Direct Chats & Messages
+    match /chats/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 11. System Configuration
+    match /system_config/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+
+

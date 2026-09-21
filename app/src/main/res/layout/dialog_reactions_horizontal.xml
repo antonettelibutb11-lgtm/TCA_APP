@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/bg_card_white"
+    android:elevation="8dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="10dp">
+
+    <TextView
+        android:id="@+id/tvReactLike"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center"
+        android:text="👍"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tvReactHeart"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="❤️"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tvReactCare"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="🤗"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tvReactHaha"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="😂"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tvReactWow"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="😮"
+        android:textSize="26sp" />
+
+    <TextView
+        android:id="@+id/tvReactAngry"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:gravity="center"
+        android:text="😡"
+        android:textSize="26sp" />
+
+</LinearLayout>

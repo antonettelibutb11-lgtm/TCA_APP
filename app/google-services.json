@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "341652650977",
+    "project_id": "tca-app-e3ce4",
+    "storage_bucket": "tca-app-e3ce4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:341652650977:android:e3bf900deddd249e59f0a0",
+        "android_client_info": {
+          "package_name": "com.example.tca_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "341652650977-jgrhml55v5obqd7nf31mjaq2dt8ikcga.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tca_app",
+            "certificate_hash": "ada3eb334c7ae4f035da5bf5e317502754a881e3"
+          }
+        },
+        {
+          "client_id": "341652650977-vmb647pfjb9l4lu935bv3id2nsm6b6d1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX_HYU5PCDo4i5Pzu2Ce02h9MJuDCwi1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "341652650977-vmb647pfjb9l4lu935bv3id2nsm6b6d1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
