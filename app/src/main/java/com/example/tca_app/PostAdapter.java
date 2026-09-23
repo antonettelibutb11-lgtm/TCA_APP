@@ -198,101 +198,123 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         final String uid = (currentUser != null && currentUser.getUid() != null) ? currentUser.getUid() : "guest_user";
 
+        // Direct Save / Download button on post action bar
+        if (holder.btnDownloadPost != null) {
+            holder.btnDownloadPost.setOnClickListener(v -> {
+                MediaDownloadHelper.downloadPostMedia(v.getContext(), post);
+            });
+        }
+
         // Three dots menu for post options
         if (holder.btnMoreOptions != null) {
-            if (this.isAdmin) {
-                holder.btnMoreOptions.setVisibility(View.VISIBLE);
+            holder.btnMoreOptions.setVisibility(View.VISIBLE);
 
-                holder.btnMoreOptions.setOnClickListener(v -> {
-                    PopupMenu popup = new PopupMenu(v.getContext(), holder.btnMoreOptions);
+            holder.btnMoreOptions.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(v.getContext(), holder.btnMoreOptions);
+                popup.getMenu().add("Save / Download Media");
+                popup.getMenu().add("Copy Text");
+
+                if (this.isAdmin) {
                     popup.getMenu().add("Edit");
                     popup.getMenu().add(post.isPinned() ? "Unpin Post" : "Pin Post");
                     popup.getMenu().add("Archive");
                     popup.getMenu().add("Delete");
-                    popup.setOnMenuItemClickListener(item -> {
-                        String title = item.getTitle().toString();
-                        if (title.equals("Edit")) {
-                            EditText input = new EditText(v.getContext());
-                            input.setText(post.getContent());
-                            input.setSelection(input.getText().length());
-                            new AlertDialog.Builder(v.getContext())
-                                    .setTitle("Edit Post")
-                                    .setView(input)
-                                    .setPositiveButton("Save", (dialog, which) -> {
-                                        String newText = input.getText().toString().trim();
-                                        if (!newText.isEmpty() && post.getId() != null && !post.getId().isEmpty()) {
-                                            FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                                    .update("content", newText)
-                                                    .addOnSuccessListener(aVoid -> {
-                                                        post.setContent(newText);
-                                                        int currentPos = holder.getAdapterPosition();
-                                                        if (currentPos != RecyclerView.NO_POSITION) {
-                                                            notifyItemChanged(currentPos);
-                                                        }
-                                                        Toast.makeText(v.getContext(), "Post updated successfully!", Toast.LENGTH_SHORT).show();
-                                                    })
-                                                    .addOnFailureListener(e -> {
-                                                        Toast.makeText(v.getContext(), "Failed to update: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                    });
-                                        }
-                                    })
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
-                            return true;
-                        } else if (title.equals("Pin Post") || title.equals("Unpin Post")) {
-                            boolean newPinnedStatus = title.equals("Pin Post");
-                            FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                    .update("isPinned", newPinnedStatus)
-                                    .addOnSuccessListener(aVoid -> {
-                                        Toast.makeText(v.getContext(), newPinnedStatus ? "📌 Post Pinned" : "Post Unpinned", Toast.LENGTH_SHORT).show();
-                                    });
-                            return true;
-                        } else if (title.equals("Archive")) {
-                            new AlertDialog.Builder(v.getContext())
-                                    .setTitle("Archive Post")
-                                    .setMessage("Hide this post from the feed? It won't be deleted, but no one will see it.")
-                                    .setPositiveButton("Archive", (dialog, which) -> {
-                                        FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                                .update("moderationStatus", "ARCHIVED")
-                                                .addOnSuccessListener(aVoid -> {
-                                                    int currentPos = holder.getAdapterPosition();
-                                                    if (currentPos != RecyclerView.NO_POSITION) {
-                                                        postList.remove(currentPos);
-                                                        notifyItemRemoved(currentPos);
-                                                        Toast.makeText(v.getContext(), "📦 Post archived", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                });
-                                    })
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
-                            return true;
-                        } else if (title.equals("Delete")) {
-                            new AlertDialog.Builder(v.getContext())
-                                    .setTitle("Delete Post")
-                                    .setMessage("Are you sure you want to permanently delete this post?")
-                                    .setPositiveButton("Delete", (dialog, which) -> {
-                                        FirebaseFirestore.getInstance().collection("posts").document(post.getId()).delete()
-                                                .addOnSuccessListener(aVoid -> {
-                                                    int currentPos = holder.getAdapterPosition();
-                                                    if (currentPos != RecyclerView.NO_POSITION) {
-                                                        postList.remove(currentPos);
-                                                        notifyItemRemoved(currentPos);
-                                                        Toast.makeText(v.getContext(), "🗑️ Post deleted", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                })
-                                                .addOnFailureListener(e -> Toast.makeText(v.getContext(), "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                                    })
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
-                            return true;
+                }
+
+                popup.setOnMenuItemClickListener(item -> {
+                    String title = item.getTitle().toString();
+                    if (title.equals("Save / Download Media")) {
+                        MediaDownloadHelper.downloadPostMedia(v.getContext(), post);
+                        return true;
+                    } else if (title.equals("Copy Text")) {
+                        String text = post.getContent();
+                        if (text != null && !text.isEmpty()) {
+                            android.content.ClipboardManager cb = (android.content.ClipboardManager) v.getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                            if (cb != null) {
+                                cb.setPrimaryClip(android.content.ClipData.newPlainText("Post Content", text));
+                                Toast.makeText(v.getContext(), "📋 Post text copied to clipboard!", Toast.LENGTH_SHORT).show();
+                            }
                         }
-                        return false;
-                    });
-                    popup.show();
+                        return true;
+                    } else if (title.equals("Edit")) {
+                        EditText input = new EditText(v.getContext());
+                        input.setText(post.getContent());
+                        input.setSelection(input.getText().length());
+                        new AlertDialog.Builder(v.getContext())
+                                .setTitle("Edit Post")
+                                .setView(input)
+                                .setPositiveButton("Save", (dialog, which) -> {
+                                    String newText = input.getText().toString().trim();
+                                    if (!newText.isEmpty() && post.getId() != null && !post.getId().isEmpty()) {
+                                        FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                                                .update("content", newText)
+                                                .addOnSuccessListener(aVoid -> {
+                                                    post.setContent(newText);
+                                                    int currentPos = holder.getAdapterPosition();
+                                                    if (currentPos != RecyclerView.NO_POSITION) {
+                                                        notifyItemChanged(currentPos);
+                                                    }
+                                                    Toast.makeText(v.getContext(), "Post updated successfully!", Toast.LENGTH_SHORT).show();
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Toast.makeText(v.getContext(), "Failed to update: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                                });
+                                    }
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                        return true;
+                    } else if (title.equals("Pin Post") || title.equals("Unpin Post")) {
+                        boolean newPinnedStatus = title.equals("Pin Post");
+                        FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                                .update("isPinned", newPinnedStatus)
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(v.getContext(), newPinnedStatus ? "📌 Post Pinned" : "Post Unpinned", Toast.LENGTH_SHORT).show();
+                                });
+                        return true;
+                    } else if (title.equals("Archive")) {
+                        new AlertDialog.Builder(v.getContext())
+                                .setTitle("Archive Post")
+                                .setMessage("Hide this post from the feed? It won't be deleted, but no one will see it.")
+                                .setPositiveButton("Archive", (dialog, which) -> {
+                                    FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                                            .update("moderationStatus", "ARCHIVED")
+                                            .addOnSuccessListener(aVoid -> {
+                                                int currentPos = holder.getAdapterPosition();
+                                                if (currentPos != RecyclerView.NO_POSITION) {
+                                                    postList.remove(currentPos);
+                                                    notifyItemRemoved(currentPos);
+                                                    Toast.makeText(v.getContext(), "📦 Post archived", Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                        return true;
+                    } else if (title.equals("Delete")) {
+                        new AlertDialog.Builder(v.getContext())
+                                .setTitle("Delete Post")
+                                .setMessage("Are you sure you want to permanently delete this post?")
+                                .setPositiveButton("Delete", (dialog, which) -> {
+                                    FirebaseFirestore.getInstance().collection("posts").document(post.getId()).delete()
+                                            .addOnSuccessListener(aVoid -> {
+                                                int currentPos = holder.getAdapterPosition();
+                                                if (currentPos != RecyclerView.NO_POSITION) {
+                                                    postList.remove(currentPos);
+                                                    notifyItemRemoved(currentPos);
+                                                    Toast.makeText(v.getContext(), "🗑️ Post deleted", Toast.LENGTH_SHORT).show();
+                                                }
+                                            })
+                                            .addOnFailureListener(e -> Toast.makeText(v.getContext(), "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                        return true;
+                    }
+                    return false;
                 });
-            } else {
-                holder.btnMoreOptions.setVisibility(View.GONE);
-            }
+                popup.show();
+            });
         }
 
         if (post.isLikedByCurrentUser() && holder.tvLikeCount != null) {
@@ -760,6 +782,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         View collage_5_overlay;
         android.widget.TextView collage_5_more_text;
         ImageView btnMoreOptions;
+        View btnDownloadPost;
 
         public PostViewHolder(@androidx.annotation.NonNull View itemView) {
             super(itemView);
@@ -775,6 +798,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             btnComment = itemView.findViewById(R.id.btnComment);
             btnRepost = itemView.findViewById(R.id.btnRepost);
             btnReportPost = itemView.findViewById(R.id.btnReportPost);
+            btnDownloadPost = itemView.findViewById(R.id.btnDownloadPost);
             layoutMediaContainer = itemView.findViewById(R.id.layoutMediaContainer);
             
             layoutSingleVideo = itemView.findViewById(R.id.layoutSingleVideo);

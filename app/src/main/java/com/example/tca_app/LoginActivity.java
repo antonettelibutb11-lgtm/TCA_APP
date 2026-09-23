@@ -56,7 +56,6 @@ public class LoginActivity extends AppCompatActivity {
         EditText etEmail = findViewById(R.id.etEmail);
         EditText etPassword = findViewById(R.id.etPassword);
         EditText etConfirmPassword = findViewById(R.id.etConfirmPassword);
-        CheckBox cbCampusAccessMember = findViewById(R.id.cbCampusAccessMember);
         TextView btnLogin = findViewById(R.id.btnLogin);
         TextView btnTogglePassword = findViewById(R.id.btnTogglePassword);
         TextView btnToggleConfirmPassword = findViewById(R.id.btnToggleConfirmPassword);
@@ -67,7 +66,6 @@ public class LoginActivity extends AppCompatActivity {
         if (tabStudent != null) tabStudent.setVisibility(View.VISIBLE);
         if (tabAdmin != null) tabAdmin.setVisibility(View.VISIBLE);
         if (tvLoginTitle != null) tvLoginTitle.setText(R.string.title_student_login);
-        if (cbCampusAccessMember != null) cbCampusAccessMember.setVisibility(View.VISIBLE);
 
         if (tabStudent != null && tabAdmin != null) {
             tabStudent.setOnClickListener(v -> {
@@ -77,7 +75,6 @@ public class LoginActivity extends AppCompatActivity {
                 tabAdmin.setBackground(null);
                 tabAdmin.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary));
                 if (tvLoginTitle != null) tvLoginTitle.setText(R.string.title_student_login);
-                if (cbCampusAccessMember != null) cbCampusAccessMember.setVisibility(View.VISIBLE);
             });
 
             tabAdmin.setOnClickListener(v -> {
@@ -87,7 +84,6 @@ public class LoginActivity extends AppCompatActivity {
                 tabStudent.setBackground(null);
                 tabStudent.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.text_secondary));
                 if (tvLoginTitle != null) tvLoginTitle.setText(R.string.title_admin_login);
-                if (cbCampusAccessMember != null) cbCampusAccessMember.setVisibility(View.GONE);
             });
         }
 
@@ -130,7 +126,7 @@ public class LoginActivity extends AppCompatActivity {
             String email = etEmail.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
             String confirmPassword = etConfirmPassword != null ? etConfirmPassword.getText().toString().trim() : "";
-            boolean isMemberRequested = cbCampusAccessMember != null && cbCampusAccessMember.isChecked();
+            boolean isMemberRequested = false;
 
             if (name.isEmpty()) {
                 etName.setError(getString(R.string.error_empty_name));

@@ -91,17 +91,12 @@ public class HomeFeedFragment extends Fragment {
 
         setupCategoryClickListeners();
         setupSearchListener();
-        
+
         // Quick access shortcut cards
         LinearLayout cardOrganizations = view.findViewById(R.id.cardOrganizations);
-
         if (cardOrganizations != null) {
             cardOrganizations.setOnClickListener(v -> {
-                requireActivity().getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.fragmentContainer, new OrganizationFragment())
-                        .addToBackStack(null)
-                        .commit();
+                startActivity(new android.content.Intent(getContext(), EditorialChartActivity.class));
             });
         }
 

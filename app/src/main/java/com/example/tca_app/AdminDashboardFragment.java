@@ -62,6 +62,17 @@ public class AdminDashboardFragment extends Fragment {
             });
         }
 
+        View btnAdminOpenMemberChart = view.findViewById(R.id.btnAdminOpenMemberChart);
+        if (btnAdminOpenMemberChart != null) {
+            btnAdminOpenMemberChart.setOnClickListener(v -> {
+                if (getContext() != null) {
+                    android.content.Intent intent = new android.content.Intent(getContext(), EditorialChartActivity.class);
+                    intent.putExtra("OPEN_ADD_MEMBER_DIALOG", true);
+                    startActivity(intent);
+                }
+            });
+        }
+
         // Bind Real-Time Donut Legend Percentage TextViews
         tvPctAll = view.findViewById(R.id.tvPctAll);
         tvPctAcademics = view.findViewById(R.id.tvPctAcademics);

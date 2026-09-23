@@ -60,6 +60,18 @@ public class FullScreenVideoActivity extends AppCompatActivity {
             progressBar.setVisibility(View.GONE);
         }
 
+        ImageView btnDownloadVideo = findViewById(R.id.btnDownloadVideo);
+        if (btnDownloadVideo != null) {
+            btnDownloadVideo.setOnClickListener(v -> {
+                if (videoUriStr != null && !videoUriStr.isEmpty()) {
+                    String fileName = "TCA_Video_" + System.currentTimeMillis() + ".mp4";
+                    MediaDownloadHelper.downloadFile(this, videoUriStr, fileName, "video/mp4");
+                } else {
+                    android.widget.Toast.makeText(this, "Cannot download: No video link.", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         btnClose.setOnClickListener(v -> finish());
     }
 

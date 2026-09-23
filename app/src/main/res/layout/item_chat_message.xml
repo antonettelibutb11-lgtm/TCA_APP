@@ -71,7 +71,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-black"
-            android:textColor="#3D0066"
+            android:textColor="@color/purple_primary"
             android:textSize="11.5sp"
             android:textStyle="bold" />
 
@@ -99,7 +99,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:maxWidth="240dp"
-            android:textColor="#1A1A1A"
+            android:textColor="@color/text_primary"
             android:textSize="14sp" />
 
         <TextView
@@ -108,7 +108,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="3dp"
-            android:textColor="#4A4A4A"
+            android:textColor="@color/text_muted"
             android:textSize="10sp" />
     </LinearLayout>
 

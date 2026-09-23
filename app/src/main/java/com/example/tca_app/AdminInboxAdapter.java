@@ -52,12 +52,8 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
         }
         holder.tvStudentAvatarInitials.setText(initial);
 
-        // Email
-        String email = item.getStudentEmail();
-        if (email != null && !email.isEmpty()) {
-            holder.tvStudentEmail.setText(email);
-            holder.tvStudentEmail.setVisibility(View.VISIBLE);
-        } else {
+        // Student email is kept hidden for student privacy
+        if (holder.tvStudentEmail != null) {
             holder.tvStudentEmail.setVisibility(View.GONE);
         }
 

@@ -7,6 +7,7 @@ public class ChatMessage {
     private String imageUrl;
     private String messageType;
     private long timestamp;
+    private String senderRole = "STUDENT";
 
     public ChatMessage() {}
 
@@ -22,6 +23,9 @@ public class ChatMessage {
         this.messageType = messageType != null ? messageType : "TEXT";
         this.timestamp = timestamp;
     }
+
+    public String getSenderRole() { return senderRole != null ? senderRole : "STUDENT"; }
+    public void setSenderRole(String senderRole) { this.senderRole = senderRole; }
 
     public String getSenderId() { return senderId != null ? senderId : ""; }
     public void setSenderId(String senderId) { this.senderId = senderId; }

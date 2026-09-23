@@ -98,18 +98,7 @@ public class MessageActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
-        if (getIntent() != null) {
-            if (getIntent().hasExtra("RECIPIENT_UID")) {
-                recipientUid = getIntent().getStringExtra("RECIPIENT_UID");
-            }
-            if (getIntent().hasExtra("RECIPIENT_NAME")) {
-                recipientName = getIntent().getStringExtra("RECIPIENT_NAME");
-            }
-            if (getIntent().hasExtra("RECIPIENT_EMAIL")) {
-                recipientEmail = getIntent().getStringExtra("RECIPIENT_EMAIL");
-            }
-            isAdminReply = getIntent().getBooleanExtra("IS_ADMIN_REPLY", false);
-        }
+        handleIntentData(getIntent());
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
@@ -118,13 +107,6 @@ public class MessageActivity extends AppCompatActivity {
             return;
         }
         currentUid = currentUser.getUid() != null ? currentUser.getUid() : "guest_user";
-
-        // Deterministic chatId between the 2 parties
-        if (currentUid.compareTo(recipientUid) < 0) {
-            chatId = currentUid + "_" + recipientUid;
-        } else {
-            chatId = recipientUid + "_" + currentUid;
-        }
 
         ImageView btnBackChat = findViewById(R.id.btnBackChat);
         tvChatRecipientName = findViewById(R.id.tvChatRecipientName);
@@ -144,21 +126,18 @@ public class MessageActivity extends AppCompatActivity {
         AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
             if (isFinishing() || isDestroyed()) return;
             isUserAdmin = isAdmin || isAdminReply;
+            if (adapter != null) {
+                adapter.setCurrentUserAdmin(isUserAdmin);
+            }
 
             if (isUserAdmin) {
                 // ADMIN VIEW: Talking to a student
                 currentSenderName = "The Campus Access Editorial Desk";
                 if (tvChatRecipientName != null) {
-                    tvChatRecipientName.setText(recipientName != null ? recipientName : "Student Inquiry");
+                    tvChatRecipientName.setText(recipientName != null && !recipientName.isEmpty() ? recipientName : "Student Inquiry");
                 }
                 if (tvChatRecipientStatus != null) {
-                    String statusText = "Student Inquiry";
-                    if (recipientEmail != null && !recipientEmail.isEmpty()) {
-                        statusText += " • " + recipientEmail;
-                    } else {
-                        statusText += " • BISU Balilihan";
-                    }
-                    tvChatRecipientStatus.setText(statusText);
+                    tvChatRecipientStatus.setText("Student Inquiry • BISU Balilihan");
                 }
             } else {
                 // STUDENT VIEW: Talking to Editorial Desk
@@ -179,6 +158,7 @@ public class MessageActivity extends AppCompatActivity {
 
         messageList = new ArrayList<>();
         adapter = new ChatMessageAdapter(messageList, currentUid);
+        adapter.setCurrentUserAdmin(isAdminReply);
         rvChatMessages.setAdapter(adapter);
 
         if (btnSendMessage != null) {
@@ -195,7 +175,33 @@ public class MessageActivity extends AppCompatActivity {
             btnAttachFile.setOnClickListener(v -> galleryLauncher.launch("image/*"));
         }
 
-        listenToChatMessages();
+        resolveChatAndStartListening();
+    }
+
+    private void handleIntentData(Intent intent) {
+        if (intent != null) {
+            if (intent.hasExtra("CHAT_ID") && intent.getStringExtra("CHAT_ID") != null && !intent.getStringExtra("CHAT_ID").trim().isEmpty()) {
+                chatId = intent.getStringExtra("CHAT_ID").trim();
+            }
+            if (intent.hasExtra("RECIPIENT_UID")) {
+                recipientUid = intent.getStringExtra("RECIPIENT_UID");
+            }
+            if (intent.hasExtra("RECIPIENT_NAME")) {
+                recipientName = intent.getStringExtra("RECIPIENT_NAME");
+            }
+            if (intent.hasExtra("RECIPIENT_EMAIL")) {
+                recipientEmail = intent.getStringExtra("RECIPIENT_EMAIL");
+            }
+            isAdminReply = intent.getBooleanExtra("IS_ADMIN_REPLY", false);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntentData(intent);
+        resolveChatAndStartListening();
     }
 
     private void openCamera() {
@@ -370,7 +376,12 @@ public class MessageActivity extends AppCompatActivity {
             }
             chatMeta.put("adminUid", recipientUid);
         }
-        chatMeta.put("participants", Arrays.asList(currentUid, recipientUid));
+
+        List<String> participants = new ArrayList<>();
+        if (currentUid != null && !currentUid.isEmpty()) participants.add(currentUid);
+        if (recipientUid != null && !recipientUid.isEmpty() && !participants.contains(recipientUid)) participants.add(recipientUid);
+        if (!participants.contains("campus_admin_desk")) participants.add("campus_admin_desk");
+        chatMeta.put("participants", participants);
         chatMeta.put("updatedAt", FieldValue.serverTimestamp());
 
         db.collection("chats")
@@ -378,9 +389,100 @@ public class MessageActivity extends AppCompatActivity {
                 .set(chatMeta, SetOptions.merge());
     }
 
+    private void resolveChatAndStartListening() {
+        if (chatId != null && !chatId.trim().isEmpty()) {
+            fetchChatMetadataAndListen();
+            return;
+        }
+
+        if (isAdminReply) {
+            // Admin replying to student: look up existing conversation for this student
+            db.collection("chats")
+                    .whereEqualTo("studentUid", recipientUid)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(querySnap -> {
+                        if (querySnap != null && !querySnap.isEmpty()) {
+                            DocumentSnapshot doc = querySnap.getDocuments().get(0);
+                            chatId = doc.getId();
+                        } else {
+                            chatId = (currentUid.compareTo(recipientUid) < 0)
+                                    ? currentUid + "_" + recipientUid
+                                    : recipientUid + "_" + currentUid;
+                        }
+                        listenToChatMessages();
+                    })
+                    .addOnFailureListener(e -> {
+                        chatId = (currentUid.compareTo(recipientUid) < 0)
+                                ? currentUid + "_" + recipientUid
+                                : recipientUid + "_" + currentUid;
+                        listenToChatMessages();
+                    });
+        } else {
+            // Student reaching out: look up existing inquiry for current user
+            db.collection("chats")
+                    .whereEqualTo("studentUid", currentUid)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(querySnap -> {
+                        if (querySnap != null && !querySnap.isEmpty()) {
+                            DocumentSnapshot doc = querySnap.getDocuments().get(0);
+                            chatId = doc.getId();
+                            String adminUid = doc.getString("adminUid");
+                            if (adminUid != null && !adminUid.isEmpty()) {
+                                recipientUid = adminUid;
+                            }
+                        } else {
+                            chatId = (currentUid.compareTo(recipientUid) < 0)
+                                    ? currentUid + "_" + recipientUid
+                                    : recipientUid + "_" + currentUid;
+                        }
+                        listenToChatMessages();
+                    })
+                    .addOnFailureListener(e -> {
+                        chatId = (currentUid.compareTo(recipientUid) < 0)
+                                ? currentUid + "_" + recipientUid
+                                : recipientUid + "_" + currentUid;
+                        listenToChatMessages();
+                    });
+        }
+    }
+
+    private void fetchChatMetadataAndListen() {
+        if (chatId == null || chatId.trim().isEmpty()) {
+            listenToChatMessages();
+            return;
+        }
+
+        db.collection("chats").document(chatId).get().addOnSuccessListener(doc -> {
+            if (doc != null && doc.exists()) {
+                String sUid = doc.getString("studentUid");
+                String sName = doc.getString("studentName");
+                String sEmail = doc.getString("studentEmail");
+                String aUid = doc.getString("adminUid");
+
+                if (isUserAdmin || isAdminReply) {
+                    if (sUid != null && !sUid.isEmpty()) recipientUid = sUid;
+                    if (sName != null && !sName.isEmpty()) {
+                        recipientName = sName;
+                        if (tvChatRecipientName != null) tvChatRecipientName.setText(recipientName);
+                    }
+                    if (sEmail != null && !sEmail.isEmpty()) recipientEmail = sEmail;
+                } else {
+                    if (aUid != null && !aUid.isEmpty()) recipientUid = aUid;
+                }
+            }
+            listenToChatMessages();
+        }).addOnFailureListener(e -> listenToChatMessages());
+    }
+
     private com.google.firebase.firestore.ListenerRegistration chatListenerRegistration;
 
     private void listenToChatMessages() {
+        if (chatId == null || chatId.trim().isEmpty()) {
+            return;
+        }
+
         if (chatListenerRegistration != null) {
             chatListenerRegistration.remove();
         }
@@ -403,6 +505,7 @@ public class MessageActivity extends AppCompatActivity {
                             String text = doc.getString("text");
                             String imageUrl = doc.getString("imageUrl");
                             String messageType = doc.getString("messageType");
+                            String senderRole = doc.getString("senderRole");
 
                             long timestamp = System.currentTimeMillis();
                             Object tsObj = doc.get("timestamp");
@@ -422,23 +525,96 @@ public class MessageActivity extends AppCompatActivity {
                                     messageType != null ? messageType : "TEXT",
                                     timestamp
                             );
+                            if (senderRole != null) {
+                                msg.setSenderRole(senderRole);
+                            }
                             messageList.add(msg);
                         }
 
-                        // Sort chronologically (oldest to newest)
-                        java.util.Collections.sort(messageList, (m1, m2) -> Long.compare(m1.getTimestamp(), m2.getTimestamp()));
+                        if (messageList.isEmpty()) {
+                            // Defensive recovery: If messages subcollection is empty, check parent chat document
+                            checkAndRecoverParentMessage();
+                        } else {
+                            // Sort chronologically (oldest to newest)
+                            java.util.Collections.sort(messageList, (m1, m2) -> Long.compare(m1.getTimestamp(), m2.getTimestamp()));
 
-                        adapter.notifyDataSetChanged();
-                        if (!messageList.isEmpty()) {
+                            adapter.notifyDataSetChanged();
                             rvChatMessages.scrollToPosition(messageList.size() - 1);
                         }
                     }
                 });
     }
 
+    private void checkAndRecoverParentMessage() {
+        if (chatId == null || chatId.trim().isEmpty()) return;
+
+        db.collection("chats").document(chatId).get().addOnSuccessListener(doc -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (doc != null && doc.exists() && messageList.isEmpty()) {
+                String lastMsg = doc.getString("lastMessage");
+                if (lastMsg != null && !lastMsg.trim().isEmpty() && !"New inquiry started".equalsIgnoreCase(lastMsg.trim())) {
+                    String senderId = doc.getString("lastSenderId");
+                    String senderName = doc.getString("lastSenderName");
+                    String senderRole = doc.getString("lastSenderRole");
+                    Long ts = doc.getLong("lastMessageTimestamp");
+                    long time = (ts != null && ts > 0) ? ts : System.currentTimeMillis();
+
+                    if (senderId == null || senderId.isEmpty()) {
+                        senderId = doc.getString("studentUid");
+                    }
+                    if (senderName == null || senderName.isEmpty()) {
+                        senderName = doc.getString("studentName");
+                    }
+
+                    ChatMessage recoveredMsg = new ChatMessage(
+                            senderId != null ? senderId : "",
+                            senderName != null ? senderName : "Student",
+                            lastMsg,
+                            "",
+                            "TEXT",
+                            time
+                    );
+                    if (senderRole != null) recoveredMsg.setSenderRole(senderRole);
+                    messageList.add(recoveredMsg);
+                    adapter.notifyDataSetChanged();
+                    rvChatMessages.scrollToPosition(messageList.size() - 1);
+
+                    // Formalize in subcollection for permanent persistence
+                    Map<String, Object> syncMap = new HashMap<>();
+                    syncMap.put("senderId", senderId != null ? senderId : "");
+                    syncMap.put("senderName", senderName != null ? senderName : "Student");
+                    syncMap.put("senderRole", senderRole != null ? senderRole : "STUDENT");
+                    syncMap.put("text", lastMsg);
+                    syncMap.put("imageUrl", "");
+                    syncMap.put("messageType", "TEXT");
+                    syncMap.put("timestamp", time);
+                    db.collection("chats").document(chatId).collection("messages").add(syncMap);
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ChatNotificationHelper.activeChatId = chatId;
+        ChatNotificationHelper.markChatAsRead(this, chatId);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (chatId != null && chatId.equals(ChatNotificationHelper.activeChatId)) {
+            ChatNotificationHelper.activeChatId = null;
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (chatId != null && chatId.equals(ChatNotificationHelper.activeChatId)) {
+            ChatNotificationHelper.activeChatId = null;
+        }
         if (chatListenerRegistration != null) {
             chatListenerRegistration.remove();
             chatListenerRegistration = null;

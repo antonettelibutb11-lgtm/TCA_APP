@@ -92,10 +92,10 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_chip_selected"
-                    android:paddingHorizontal="6dp"
-                    android:paddingVertical="1.5dp"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
                     android:text="Student Inquiry"
-                    android:textColor="#3D0066"
+                    android:textColor="@color/white"
                     android:textSize="10.5sp"
                     android:textStyle="bold" />
 
@@ -107,9 +107,10 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="student@bisu.edu.ph"
+                    android:text=""
                     android:textColor="@color/text_secondary"
-                    android:textSize="11.5sp" />
+                    android:textSize="11.5sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <TextView

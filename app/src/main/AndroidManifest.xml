@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -55,6 +56,11 @@
         <!-- Admin Student Inquiries & Messages Inbox Activity -->
         <activity
             android:name=".AdminInboxActivity"
+            android:exported="false" />
+
+        <!-- The Campus Access Editorial Staff Directory Chart Activity -->
+        <activity
+            android:name=".EditorialChartActivity"
             android:exported="false" />
 
         <!-- Full Screen Image Viewer Activity -->

@@ -24,11 +24,17 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
     private final List<ChatMessage> messageList;
     private final String currentUserId;
+    private boolean isCurrentUserAdmin = false;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.US);
 
     public ChatMessageAdapter(List<ChatMessage> messageList, String currentUserId) {
         this.messageList = messageList;
         this.currentUserId = currentUserId;
+    }
+
+    public void setCurrentUserAdmin(boolean admin) {
+        this.isCurrentUserAdmin = admin;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -51,7 +57,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
         String senderId = msg.getSenderId() != null ? msg.getSenderId().trim() : "";
         String myId = currentUserId != null ? currentUserId.trim() : "";
-        boolean isSentByMe = !myId.isEmpty() && senderId.equalsIgnoreCase(myId);
+        boolean isSentByMe = (!myId.isEmpty() && senderId.equalsIgnoreCase(myId))
+                || (isCurrentUserAdmin && "ADMIN".equalsIgnoreCase(msg.getSenderRole()));
 
         if (isSentByMe) {
             // Sent message (Right)

@@ -35,6 +35,37 @@
             android:textColor="@color/white"
             android:textSize="17sp"
             android:textStyle="bold" />
+
+        <FrameLayout
+            android:id="@+id/btnTopBarChat"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:contentDescription="Messages"
+                android:src="@drawable/ic_chat_bubble"
+                app:tint="@color/white" />
+
+            <TextView
+                android:id="@+id/tvTopBarUnreadBadge"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="top|end"
+                android:layout_marginEnd="2dp"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/bg_unread_badge"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
     </LinearLayout>
 
     <FrameLayout

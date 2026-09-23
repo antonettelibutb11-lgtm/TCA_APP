@@ -47,6 +47,18 @@ public class FullScreenImageActivity extends AppCompatActivity {
             tvCounter.setText("");
         }
 
+        ImageView btnDownloadImage = findViewById(R.id.btnDownloadImage);
+        if (btnDownloadImage != null) {
+            btnDownloadImage.setOnClickListener(v -> {
+                if (photoUri != null && !photoUri.isEmpty() && !photoUri.equals("default_logo")) {
+                    String fileName = "TCA_Photo_" + System.currentTimeMillis() + ".jpg";
+                    MediaDownloadHelper.downloadFile(this, photoUri, fileName, "image/jpeg");
+                } else {
+                    android.widget.Toast.makeText(this, "Cannot download default placeholder logo.", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         btnClose.setOnClickListener(v -> finish());
     }
 }

@@ -10,21 +10,21 @@
         android:layout_height="wrap_content"
         android:background="?android:attr/colorBackground"
         android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="8dp">
+        android:paddingHorizontal="14dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="4dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="42dp"
+            android:layout_height="36dp"
             android:background="@drawable/bg_input_field"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
+            android:paddingHorizontal="10dp">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:src="@drawable/ic_home"
                 app:tint="@color/purple_primary" />
 
@@ -32,19 +32,19 @@
                 android:id="@+id/etSearch"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:background="@null"
                 android:hint="Search posts, events, literature, sports..."
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_muted"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="6dp"
             android:scrollbars="none">
 
             <LinearLayout
@@ -55,92 +55,92 @@
                 <TextView
                     android:id="@+id/chipAll"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
+                    android:layout_height="26dp"
                     android:background="@drawable/bg_chip_selected"
                     android:gravity="center"
-                    android:paddingHorizontal="16dp"
+                    android:paddingHorizontal="12dp"
                     android:text="All"
                     android:textColor="@color/white"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/chipAcademics"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Academics"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/chipEvents"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Events"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/chipLiterature"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Literature"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/chipSports"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Sports"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/chipBroadcast"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Broadcast"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/chipHoroscopes"
                     android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="26dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/bg_chip_unselected"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="11dp"
                     android:text="Horoscopes"
                     android:textColor="@color/text_primary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
         </HorizontalScrollView>
     </LinearLayout>
@@ -151,19 +151,19 @@
         android:background="?android:attr/colorBackground"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="10dp">
+        android:paddingTop="3dp"
+        android:paddingBottom="4dp">
 
         <LinearLayout
             android:id="@+id/cardOrganizations"
             android:layout_width="0dp"
-            android:layout_height="64dp"
-            android:layout_marginHorizontal="5dp"
+            android:layout_height="38dp"
+            android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_gold_button"
             android:gravity="center"
-            android:orientation="vertical"
-            android:padding="8dp">
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -171,14 +171,14 @@
                 android:fontFamily="sans-serif-black"
                 android:text="🔥 Campus FYP"
                 android:textColor="@color/text_primary"
-                android:textSize="12sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Exclusive Member Feed"
+                android:layout_marginStart="5dp"
+                android:text="• Chart"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp" />
         </LinearLayout>
@@ -186,13 +186,13 @@
         <LinearLayout
             android:id="@+id/cardCreatePost"
             android:layout_width="0dp"
-            android:layout_height="64dp"
-            android:layout_marginStart="5dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:background="@drawable/bg_card_white"
             android:gravity="center"
-            android:orientation="vertical"
-            android:padding="8dp">
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -200,19 +200,16 @@
                 android:fontFamily="sans-serif-black"
                 android:text="✍️ Create Post"
                 android:textColor="@color/purple_primary_text"
-                android:textSize="12sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Publish News or Work"
-                android:textColor="@color/text_secondary"
-                android:textSize="10sp" />
         </LinearLayout>
 
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_color" />
 
     <LinearLayout
         android:id="@+id/layoutLoadingFeed"

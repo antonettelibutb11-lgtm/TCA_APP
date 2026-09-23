@@ -88,6 +88,7 @@ public class AdminInboxActivity extends AppCompatActivity {
 
         adapter = new AdminInboxAdapter(displayedConversationList, conversation -> {
             Intent intent = new Intent(AdminInboxActivity.this, MessageActivity.class);
+            intent.putExtra("CHAT_ID", conversation.getChatId());
             intent.putExtra("RECIPIENT_UID", conversation.getStudentUid());
             intent.putExtra("RECIPIENT_NAME", conversation.getStudentName());
             intent.putExtra("RECIPIENT_EMAIL", conversation.getStudentEmail());

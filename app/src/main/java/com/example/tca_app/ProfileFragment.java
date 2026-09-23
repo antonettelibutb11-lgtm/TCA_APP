@@ -39,7 +39,7 @@ public class ProfileFragment extends Fragment {
 
     private TextView tabAll, tabGallery, tabVideos;
     private RecyclerView rvProfilePosts;
-    private android.widget.ScrollView scrollViewProfile;
+    private androidx.core.widget.NestedScrollView scrollViewProfile;
     private PostAdapter adapter;
     private GridMediaAdapter gridAdapter;
     private List<Post> profilePostsList;
@@ -62,6 +62,12 @@ public class ProfileFragment extends Fragment {
         scrollViewProfile = view.findViewById(R.id.scrollViewProfile);
         if (scrollViewProfile != null) {
             scrollViewProfile.post(() -> scrollViewProfile.scrollTo(0, 0));
+            scrollViewProfile.setOnScrollChangeListener((androidx.core.widget.NestedScrollView.OnScrollChangeListener)
+                    (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                        if (rvProfilePosts != null) {
+                            VideoScrollHelper.handleVideoVisibility(rvProfilePosts);
+                        }
+                    });
         }
 
         imgProfileLogo = view.findViewById(R.id.imgProfileLogo);
@@ -131,6 +137,7 @@ public class ProfileFragment extends Fragment {
         rvProfilePosts = view.findViewById(R.id.rvProfilePosts);
         if (rvProfilePosts != null) {
             rvProfilePosts.setLayoutManager(new LinearLayoutManager(getContext()));
+            rvProfilePosts.setNestedScrollingEnabled(false);
             profilePostsList = new ArrayList<>();
             adapter = new PostAdapter(profilePostsList);
             rvProfilePosts.setAdapter(adapter);
@@ -192,36 +199,65 @@ public class ProfileFragment extends Fragment {
             }
 
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-            // 1. Check system_config/admin_contact document
-            db.collection("system_config").document("admin_contact").get()
-                    .addOnSuccessListener(snapshot -> {
-                        if (snapshot != null && snapshot.exists() && snapshot.getString("adminUid") != null) {
-                            String adminUid = snapshot.getString("adminUid");
-                            String adminName = snapshot.getString("adminName") != null ? snapshot.getString("adminName") : "The Campus Access";
-                            launchMessageActivity(adminUid, adminName);
-                        } else {
-                            // 2. Fallback: Query first active ADMIN user dynamically from users collection
-                            db.collection("users")
-                                    .whereEqualTo("role", "ADMIN")
-                                    .limit(1)
-                                    .get()
-                                    .addOnSuccessListener(querySnap -> {
-                                        if (querySnap != null && !querySnap.isEmpty()) {
-                                            DocumentSnapshot adminDoc = querySnap.getDocuments().get(0);
-                                            String adminUid = adminDoc.getId();
-                                            String adminName = adminDoc.getString("name") != null ? adminDoc.getString("name") : "The Campus Access Editorial Desk";
-                                            launchMessageActivity(adminUid, adminName);
-                                        } else {
-                                            // Generic default desk
-                                            launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk");
-                                        }
-                                    })
-                                    .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
-                        }
-                    })
-                    .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
+            if (currentUser != null) {
+                db.collection("chats")
+                        .whereEqualTo("studentUid", currentUser.getUid())
+                        .limit(1)
+                        .get()
+                        .addOnSuccessListener(querySnap -> {
+                            if (querySnap != null && !querySnap.isEmpty()) {
+                                DocumentSnapshot doc = querySnap.getDocuments().get(0);
+                                String existingChatId = doc.getId();
+                                String adminUid = doc.getString("adminUid");
+                                if (getContext() != null) {
+                                    Intent intent = new Intent(getContext(), MessageActivity.class);
+                                    intent.putExtra("CHAT_ID", existingChatId);
+                                    intent.putExtra("RECIPIENT_UID", adminUid != null ? adminUid : "campus_admin_desk");
+                                    intent.putExtra("RECIPIENT_NAME", "The Campus Access Editorial Desk");
+                                    startActivity(intent);
+                                }
+                            } else {
+                                fallbackProfileMessaging(db);
+                            }
+                        })
+                        .addOnFailureListener(e -> fallbackProfileMessaging(db));
+                return;
+            }
+            fallbackProfileMessaging(db);
         });
+    }
+
+    private void fallbackProfileMessaging(FirebaseFirestore db) {
+        // 1. Check system_config/admin_contact document
+        db.collection("system_config").document("admin_contact").get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot != null && snapshot.exists() && snapshot.getString("adminUid") != null) {
+                        String adminUid = snapshot.getString("adminUid");
+                        String adminName = snapshot.getString("adminName") != null ? snapshot.getString("adminName") : "The Campus Access";
+                        launchMessageActivity(adminUid, adminName);
+                    } else {
+                        // 2. Fallback: Query first active ADMIN user dynamically from users collection
+                        db.collection("users")
+                                .whereEqualTo("role", "ADMIN")
+                                .limit(1)
+                                .get()
+                                .addOnSuccessListener(querySnap -> {
+                                    if (querySnap != null && !querySnap.isEmpty()) {
+                                        DocumentSnapshot adminDoc = querySnap.getDocuments().get(0);
+                                        String adminUid = adminDoc.getId();
+                                        String adminName = adminDoc.getString("name") != null ? adminDoc.getString("name") : "The Campus Access Editorial Desk";
+                                        launchMessageActivity(adminUid, adminName);
+                                    } else {
+                                        // Generic default desk
+                                        launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk");
+                                    }
+                                })
+                                .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
+                    }
+                })
+                .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
     }
 
     private void launchMessageActivity(String recipientUid, String recipientName) {
@@ -304,6 +340,7 @@ public class ProfileFragment extends Fragment {
             if (spinnerGalleryFolder != null) spinnerGalleryFolder.setVisibility(View.GONE);
             if (rvProfilePosts != null) {
                 rvProfilePosts.setLayoutManager(new LinearLayoutManager(getContext()));
+                rvProfilePosts.setNestedScrollingEnabled(false);
                 rvProfilePosts.setAdapter(adapter);
             }
         } else if ("GALLERY".equalsIgnoreCase(category)) {
@@ -314,6 +351,7 @@ public class ProfileFragment extends Fragment {
             if (spinnerGalleryFolder != null) spinnerGalleryFolder.setVisibility(View.VISIBLE);
             if (rvProfilePosts != null) {
                 rvProfilePosts.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(getContext(), 3));
+                rvProfilePosts.setNestedScrollingEnabled(false);
                 gridAdapter = new GridMediaAdapter(profilePostsList, false);
                 rvProfilePosts.setAdapter(gridAdapter);
             }
@@ -326,6 +364,7 @@ public class ProfileFragment extends Fragment {
             }
             if (rvProfilePosts != null) {
                 rvProfilePosts.setLayoutManager(new androidx.recyclerview.widget.GridLayoutManager(getContext(), 3));
+                rvProfilePosts.setNestedScrollingEnabled(false);
                 gridAdapter = new GridMediaAdapter(profilePostsList, true);
                 rvProfilePosts.setAdapter(gridAdapter);
             }

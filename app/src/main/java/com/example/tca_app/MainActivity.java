@@ -1,19 +1,42 @@
 package com.example.tca_app;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
     private TextView tvHeaderTitle;
     private boolean isAdmin = false;
     private View topBar;
+    private FrameLayout btnTopBarChat;
+    private TextView tvTopBarUnreadBadge;
+
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    ChatNotificationHelper.startListening(this);
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +46,13 @@ public class MainActivity extends AppCompatActivity {
         isAdmin = getIntent().getBooleanExtra("IS_ADMIN", false);
 
         topBar = findViewById(R.id.topBar);
+        btnTopBarChat = findViewById(R.id.btnTopBarChat);
+        tvTopBarUnreadBadge = findViewById(R.id.tvTopBarUnreadBadge);
+
+        if (btnTopBarChat != null) {
+            btnTopBarChat.setOnClickListener(v -> handleTopBarChatClick());
+        }
+
         if (topBar != null) {
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(topBar, (v, insets) -> {
                 androidx.core.graphics.Insets systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars());
@@ -87,6 +117,103 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ChatNotificationHelper.startListening(this);
+        ChatNotificationHelper.setUnreadListener(count -> runOnUiThread(() -> {
+            if (tvTopBarUnreadBadge != null) {
+                if (count > 0) {
+                    tvTopBarUnreadBadge.setVisibility(View.VISIBLE);
+                    tvTopBarUnreadBadge.setText(count > 9 ? "9+" : String.valueOf(count));
+                } else {
+                    tvTopBarUnreadBadge.setVisibility(View.GONE);
+                }
+            }
+        }));
+    }
+
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    private void handleTopBarChatClick() {
+        checkNotificationPermission();
+        AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdminUser, role) -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (isAdminUser) {
+                startActivity(new Intent(MainActivity.this, AdminInboxActivity.class));
+            } else {
+                openStudentMessaging();
+            }
+        });
+    }
+
+    private void openStudentMessaging() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            FirebaseFirestore.getInstance().collection("chats")
+                    .whereEqualTo("studentUid", user.getUid())
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(querySnap -> {
+                        if (querySnap != null && !querySnap.isEmpty()) {
+                            DocumentSnapshot doc = querySnap.getDocuments().get(0);
+                            String existingChatId = doc.getId();
+                            String adminUid = doc.getString("adminUid");
+                            Intent intent = new Intent(MainActivity.this, MessageActivity.class);
+                            intent.putExtra("CHAT_ID", existingChatId);
+                            intent.putExtra("RECIPIENT_UID", adminUid != null ? adminUid : "campus_admin_desk");
+                            intent.putExtra("RECIPIENT_NAME", "The Campus Access Editorial Desk");
+                            startActivity(intent);
+                        } else {
+                            fallbackOpenStudentMessaging();
+                        }
+                    })
+                    .addOnFailureListener(e -> fallbackOpenStudentMessaging());
+            return;
+        }
+        fallbackOpenStudentMessaging();
+    }
+
+    private void fallbackOpenStudentMessaging() {
+        FirebaseFirestore.getInstance().collection("system_config").document("admin_contact").get()
+                .addOnSuccessListener(snapshot -> {
+                    if (snapshot != null && snapshot.exists() && snapshot.getString("adminUid") != null) {
+                        launchMessageActivity(snapshot.getString("adminUid"),
+                                snapshot.getString("adminName") != null ? snapshot.getString("adminName") : "The Campus Access");
+                    } else {
+                        FirebaseFirestore.getInstance().collection("users")
+                                .whereEqualTo("role", "ADMIN")
+                                .limit(1)
+                                .get()
+                                .addOnSuccessListener(querySnap -> {
+                                    if (querySnap != null && !querySnap.isEmpty()) {
+                                        DocumentSnapshot adminDoc = querySnap.getDocuments().get(0);
+                                        launchMessageActivity(adminDoc.getId(),
+                                                adminDoc.getString("name") != null ? adminDoc.getString("name") : "The Campus Access Editorial Desk");
+                                    } else {
+                                        launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk");
+                                    }
+                                })
+                                .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
+                    }
+                })
+                .addOnFailureListener(e -> launchMessageActivity("campus_admin_desk", "The Campus Access Editorial Desk"));
+    }
+
+    private void launchMessageActivity(String recipientUid, String recipientName) {
+        Intent intent = new Intent(MainActivity.this, MessageActivity.class);
+        intent.putExtra("RECIPIENT_UID", recipientUid);
+        intent.putExtra("RECIPIENT_NAME", recipientName);
+        startActivity(intent);
     }
 
     private void loadFragment(Fragment fragment, String title) {

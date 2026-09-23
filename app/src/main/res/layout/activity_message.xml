@@ -11,7 +11,8 @@
         android:id="@+id/chatHeaderBar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
-        android:background="#3D0066"
+        android:background="@color/purple_primary"
+        android:elevation="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp">
@@ -74,9 +75,8 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Official BISU Balilihan Publication • Active Now"
-                android:textColor="#FFEE32"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textColor="#E1BEE7"
+                android:textSize="11.5sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -88,24 +88,30 @@
         android:clipToPadding="false"
         android:paddingVertical="8dp" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_color" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#3D0066"
+        android:background="@color/white"
+        android:elevation="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="12dp">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp">
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/bg_chat_input_white_card"
+            android:background="@drawable/bg_input_field"
             android:orientation="vertical"
             android:paddingHorizontal="14dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp">
 
             <EditText
                 android:id="@+id/etChatMessage"
@@ -116,13 +122,13 @@
                 android:hint="Type a message..."
                 android:minHeight="36dp"
                 android:textColor="@color/text_primary"
-                android:textColorHint="#9E9E9E"
-                android:textSize="14.5sp" />
+                android:textColorHint="@color/text_muted"
+                android:textSize="14sp" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="2dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -142,7 +148,7 @@
                     android:id="@+id/btnAttachGallery"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:contentDescription="Gallery"
@@ -155,7 +161,7 @@
                     android:id="@+id/btnAttachFile"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="12dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
                     android:contentDescription="File"
@@ -178,8 +184,8 @@
             android:foreground="?attr/selectableItemBackgroundBorderless">
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:contentDescription="Send"
                 android:src="@drawable/ic_paper_plane"

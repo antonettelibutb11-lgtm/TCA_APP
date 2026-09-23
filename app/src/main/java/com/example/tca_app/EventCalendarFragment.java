@@ -515,11 +515,11 @@ public class EventCalendarFragment extends Fragment {
         tvHint.setPadding(0, 18, 0, 20);
         layout.addView(tvHint);
 
-        // 1. Post to Timeline Button (Primary Action)
+        // 1. Post Button (Primary Action)
         TextView btnPostToTimeline = new TextView(requireContext());
-        btnPostToTimeline.setText("🚀 POST TO TIMELINE & FYP");
+        btnPostToTimeline.setText("Post");
         btnPostToTimeline.setTextColor(Color.WHITE);
-        btnPostToTimeline.setTextSize(14.5f);
+        btnPostToTimeline.setTextSize(15f);
         btnPostToTimeline.setTypeface(null, android.graphics.Typeface.BOLD);
         btnPostToTimeline.setGravity(android.view.Gravity.CENTER);
         btnPostToTimeline.setBackgroundResource(R.drawable.bg_purple_button);
@@ -550,7 +550,7 @@ public class EventCalendarFragment extends Fragment {
 
         btnPostToTimeline.setOnClickListener(v -> {
             btnPostToTimeline.setEnabled(false);
-            btnPostToTimeline.setText("⏳ Posting to Timeline...");
+            btnPostToTimeline.setText("Posting...");
 
             autoPostEventToFyp(
                     event.getTitle(),
@@ -562,7 +562,7 @@ public class EventCalendarFragment extends Fragment {
                     () -> {
                         dialog.dismiss();
                         if (getActivity() != null) {
-                            Toast.makeText(getActivity(), "📢 Event & QR Code posted to Campus Access Timeline!", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), "Event & QR Code posted successfully!", Toast.LENGTH_SHORT).show();
                             if (getActivity() instanceof MainActivity) {
                                 ((MainActivity) getActivity()).navigateToTab(0); // Switch to Timeline / Home Feed
                             }

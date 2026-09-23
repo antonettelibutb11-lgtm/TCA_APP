@@ -50,7 +50,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
 
-        sendHeadsUpNotification(title, body);
+        String type = remoteMessage.getData().get("type");
+        if ("chat".equalsIgnoreCase(type) || remoteMessage.getData().containsKey("chatId")) {
+            String chatId = remoteMessage.getData().get("chatId");
+            String recipientUid = remoteMessage.getData().get("recipientUid");
+            String recipientName = remoteMessage.getData().get("recipientName");
+            boolean isAdminReply = Boolean.parseBoolean(remoteMessage.getData().get("isAdminReply"));
+            sendChatHeadsUpNotification(title, body, chatId, recipientUid, recipientName, isAdminReply);
+        } else {
+            sendHeadsUpNotification(title, body);
+        }
     }
 
     @Override
@@ -66,6 +75,47 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             }
         } catch (Exception e) {
             Log.e(TAG, "Exception during onNewToken processing: " + e.getMessage(), e);
+        }
+    }
+
+    private void sendChatHeadsUpNotification(String title, String body, String chatId, String recipientUid, String recipientName, boolean isAdminReply) {
+        Intent intent = new Intent(this, MessageActivity.class);
+        if (chatId != null && !chatId.trim().isEmpty()) intent.putExtra("CHAT_ID", chatId);
+        if (recipientUid != null) intent.putExtra("RECIPIENT_UID", recipientUid);
+        if (recipientName != null) intent.putExtra("RECIPIENT_NAME", recipientName);
+        intent.putExtra("IS_ADMIN_REPLY", isAdminReply);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, (int) System.currentTimeMillis(), intent,
+                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    ChatNotificationHelper.CHANNEL_ID,
+                    ChatNotificationHelper.CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Notifications for incoming messages and inquiries");
+            channel.enableVibration(true);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, ChatNotificationHelper.CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_bisu_logo_hd)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                .setAutoCancel(true)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent);
+
+        if (notificationManager != null) {
+            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
         }
     }
 
