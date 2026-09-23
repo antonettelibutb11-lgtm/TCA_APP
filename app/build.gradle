@@ -8,7 +8,7 @@ android {
     compileSdk 37
 
     defaultConfig {
-        applicationId "com.bisu.tca_app"
+        applicationId "com.example.tca_app"
         minSdk 24
         targetSdk 37
         versionCode 1
