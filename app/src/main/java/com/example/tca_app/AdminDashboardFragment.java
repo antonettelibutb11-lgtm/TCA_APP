@@ -4,6 +4,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +37,11 @@ public class AdminDashboardFragment extends Fragment {
     private MembershipRequestAdapter membershipAdapter;
     private List<MembershipRequest> membershipRequestList;
     private TextView tvEmptyMembershipRequests;
+
+    // Voting Poll Analytics Views
+    private TextView tvVotingAnalyticsTotalCount;
+    private TextView tvEmptyVotingPolls;
+    private LinearLayout layoutVotingPollsList;
 
     private FirebaseFirestore db;
 
@@ -157,6 +167,11 @@ public class AdminDashboardFragment extends Fragment {
             rvMembershipRequests.setAdapter(membershipAdapter);
         }
 
+        // Bind Real-Time Campus Voting Poll Analytics Views
+        tvVotingAnalyticsTotalCount = view.findViewById(R.id.tvVotingAnalyticsTotalCount);
+        tvEmptyVotingPolls = view.findViewById(R.id.tvEmptyVotingPolls);
+        layoutVotingPollsList = view.findViewById(R.id.layoutVotingPollsList);
+
         // Two-Tier Role-Based Access Enforcement
         AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
             if (!isAdded() || getContext() == null) return;
@@ -172,6 +187,7 @@ public class AdminDashboardFragment extends Fragment {
 
             // Approved Members & Admins see Analytics
             loadAnalyticsUsingAggregationQueries();
+            loadVotingPollsAnalytics();
 
             // Moderation Actions & Membership Approval are ADMIN-ONLY
             if (isAdmin) {
@@ -431,6 +447,136 @@ public class AdminDashboardFragment extends Fragment {
                     if (membershipAdapter != null) membershipAdapter.notifyDataSetChanged();
                     if (tvEmptyMembershipRequests != null) {
                         tvEmptyMembershipRequests.setVisibility(membershipRequestList.isEmpty() ? View.VISIBLE : View.GONE);
+                    }
+                });
+    }
+
+    /**
+     * Real-time listener for Campus Voting Polls and computes live vote percentages and leading candidate.
+     */
+    private void loadVotingPollsAnalytics() {
+        if (db == null) return;
+
+        db.collection("voting_polls")
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(20)
+                .addSnapshotListener((snapshots, e) -> {
+                    if (!isAdded() || getContext() == null || getView() == null) return;
+                    if (layoutVotingPollsList == null) return;
+                    layoutVotingPollsList.removeAllViews();
+
+                    if (snapshots == null || snapshots.isEmpty()) {
+                        if (tvEmptyVotingPolls != null) tvEmptyVotingPolls.setVisibility(View.VISIBLE);
+                        if (layoutVotingPollsList != null) layoutVotingPollsList.setVisibility(View.GONE);
+                        if (tvVotingAnalyticsTotalCount != null) tvVotingAnalyticsTotalCount.setText("0 Polls Active");
+                        return;
+                    }
+
+                    if (tvEmptyVotingPolls != null) tvEmptyVotingPolls.setVisibility(View.GONE);
+                    if (layoutVotingPollsList != null) layoutVotingPollsList.setVisibility(View.VISIBLE);
+                    if (tvVotingAnalyticsTotalCount != null) {
+                        tvVotingAnalyticsTotalCount.setText(snapshots.size() + (snapshots.size() == 1 ? " Poll Active" : " Polls Active"));
+                    }
+
+                    LayoutInflater inflater = LayoutInflater.from(getContext());
+
+                    for (DocumentSnapshot doc : snapshots.getDocuments()) {
+                        if (doc == null || !doc.exists()) continue;
+
+                        String question = doc.getString("question");
+                        String eventName = doc.getString("eventName");
+                        Long totalVotesLong = doc.getLong("totalVotes");
+                        long totalVotes = totalVotesLong != null ? totalVotesLong : 0L;
+
+                        @SuppressWarnings("unchecked")
+                        List<String> options = (List<String>) doc.get("options");
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> votesCountMap = (Map<String, Object>) doc.get("votesCount");
+                        if (options == null) options = new ArrayList<>();
+                        if (votesCountMap == null) votesCountMap = new HashMap<>();
+
+                        View card = inflater.inflate(R.layout.item_voting_poll_analytics, layoutVotingPollsList, false);
+
+                        TextView tvPollTitle = card.findViewById(R.id.tvPollTitleAnalytics);
+                        TextView tvTotalBadge = card.findViewById(R.id.tvTotalVotesBadge);
+                        TextView tvEvent = card.findViewById(R.id.tvPollEventAnalytics);
+                        TextView tvLeading = card.findViewById(R.id.tvLeadingCandidateBadge);
+                        LinearLayout layoutProgress = card.findViewById(R.id.layoutOptionsProgressContainer);
+
+                        tvPollTitle.setText(question != null ? question : "Campus Voting Poll");
+                        tvEvent.setText("Event: " + (eventName != null ? eventName : "General Campus Vote"));
+                        tvTotalBadge.setText(totalVotes + (totalVotes == 1 ? " Vote" : " Votes"));
+
+                        String leadingOption = "—";
+                        long maxVotes = -1;
+
+                        layoutProgress.removeAllViews();
+
+                        for (String opt : options) {
+                            long count = 0;
+                            Object countObj = votesCountMap.get(opt);
+                            if (countObj instanceof Number) {
+                                count = ((Number) countObj).longValue();
+                            }
+
+                            if (count > maxVotes) {
+                                maxVotes = count;
+                                leadingOption = opt;
+                            }
+
+                            int percentage = (totalVotes > 0) ? (int) Math.round(((double) count / totalVotes) * 100.0) : 0;
+
+                            LinearLayout row = new LinearLayout(getContext());
+                            row.setOrientation(LinearLayout.VERTICAL);
+                            row.setPadding(0, 6, 0, 6);
+
+                            LinearLayout headerRow = new LinearLayout(getContext());
+                            headerRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                            TextView tvOptName = new TextView(getContext());
+                            tvOptName.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+                            tvOptName.setText(opt);
+                            tvOptName.setTextColor(getResources().getColor(R.color.text_primary));
+                            tvOptName.setTextSize(12.5f);
+                            tvOptName.setTypeface(null, Typeface.BOLD);
+
+                            TextView tvOptVotes = new TextView(getContext());
+                            tvOptVotes.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                            tvOptVotes.setText(count + " (" + percentage + "%)");
+                            tvOptVotes.setTextColor(getResources().getColor(R.color.purple_primary));
+                            tvOptVotes.setTextSize(12f);
+                            tvOptVotes.setTypeface(null, Typeface.BOLD);
+
+                            headerRow.addView(tvOptName);
+                            headerRow.addView(tvOptVotes);
+                            row.addView(headerRow);
+
+                            ProgressBar pb = new ProgressBar(getContext(), null, android.R.attr.progressBarStyleHorizontal);
+                            LinearLayout.LayoutParams pbParams = new LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    (int) (8 * getResources().getDisplayMetrics().density)
+                            );
+                            pbParams.topMargin = (int) (4 * getResources().getDisplayMetrics().density);
+                            pb.setLayoutParams(pbParams);
+                            pb.setMax(100);
+                            pb.setProgress(percentage);
+                            pb.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#7C3AED")));
+                            pb.setProgressBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#E9D5FF")));
+
+                            row.addView(pb);
+                            layoutProgress.addView(row);
+                        }
+
+                        if (totalVotes > 0 && maxVotes > 0) {
+                            int leadPct = (int) Math.round(((double) maxVotes / totalVotes) * 100.0);
+                            tvLeading.setText("🏆 Leading: " + leadingOption + " (" + leadPct + "%)");
+                            tvLeading.setVisibility(View.VISIBLE);
+                        } else {
+                            tvLeading.setText("⏳ Waiting for initial student votes...");
+                            tvLeading.setVisibility(View.VISIBLE);
+                        }
+
+                        layoutVotingPollsList.addView(card);
                     }
                 });
     }

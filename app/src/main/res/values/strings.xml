@@ -6,7 +6,7 @@
     <string name="google_web_client_id">341652650977-vmb647pfjb9l4lu935bv3id2nsm6b6d1.apps.googleusercontent.com</string>
     <string name="btn_get_started">Get Started</string>
 
-    <string name="title_campus_events">Campus Events &amp; Attendance</string>
+    <string name="title_campus_events">Campus Events &amp; Voting</string>
     <string name="title_analytics_dashboard">Analytics &amp; Dashboard</string>
     <string name="title_student_login">The Campus Access\nStudent Login</string>
     <string name="title_admin_login">The Campus Access\nAdmin Login</string>

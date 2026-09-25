@@ -259,7 +259,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:fontFamily="sans-serif-bold"
-                android:text="SCAN QR CODE FOR ATTENDANCE"
+                android:text="SCAN QR CODE TO VOTE"
                 android:textColor="@color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />

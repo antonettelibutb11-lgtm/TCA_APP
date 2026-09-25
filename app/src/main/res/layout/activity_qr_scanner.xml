@@ -50,7 +50,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-bold"
-                android:text="QR Attendance Check-In"
+                android:text="QR Voting Scanner"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
                 android:textStyle="bold"
@@ -102,7 +102,7 @@
                 android:layout_marginTop="8dp"
                 android:fontFamily="sans-serif-bold"
                 android:gravity="center"
-                android:text="Scan Event QR Code"
+                android:text="Scan QR Code to Vote"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -113,7 +113,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center"
-                android:text="Align the QR code within the frame to verify attendance"
+                android:text="Align the Voting QR code within the frame to cast your vote"
                 android:textColor="#A78BFA"
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.2" />
@@ -266,7 +266,7 @@
                         android:background="#1B5E20"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="5dp"
-                        android:text="✓  QR Recorded"
+                        android:text="✓  Vote Recorded"
                         android:textColor="#A5D6A7"
                         android:textSize="11sp"
                         android:textStyle="bold"
@@ -279,7 +279,7 @@
                         android:layout_weight="1"
                         android:layout_marginStart="12dp"
                         android:fontFamily="sans-serif-bold"
-                        android:text="✅ Attendance Verified &amp; Recorded!"
+                        android:text="✅ Vote Verified &amp; Recorded!"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -366,7 +366,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:gravity="center"
-                android:text="🔒 Attendance data is instantly synced to the cloud Firestore database."
+                android:text="🔒 Voting &amp; check-in data is instantly synced to the cloud Firestore database."
                 android:textColor="#6D5594"
                 android:textSize="11sp" />
 
