@@ -590,7 +590,7 @@ public class CreatePostActivity extends AppCompatActivity {
         }
         postMap.put("docUri", docUrl);
         postMap.put("imageHash", ""); // Cloud Functions will compute and index hashes on server
-        // COST FIX: Ensure immediate posts have a valid scheduledTimestamp for correct feed sorting
+        // Set scheduled timestamp or current time for feed sorting
         long finalScheduledTimestamp = scheduledTimestamp > 0 ? scheduledTimestamp : System.currentTimeMillis();
         postMap.put("scheduledTimestamp", finalScheduledTimestamp);
         postMap.put("likeCount", 0);

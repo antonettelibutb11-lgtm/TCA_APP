@@ -35,43 +35,110 @@
         android:textColorHint="@color/text_muted"
         android:textSize="14sp" />
 
+    <!-- Date Row -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:text="Event Date"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:fontFamily="sans-serif-medium" />
+
+    <TextView
+        android:id="@+id/etEventDay"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_input_field"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:hint="Select Date 📅"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:textSize="14sp" />
+
+    <!-- Start & End Time Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/etEventDay"
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/bg_input_field"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:hint="Select Date 📅"
-            android:paddingHorizontal="14dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_muted"
-            android:textSize="14sp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/etEventTime"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="Start Time"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/etEventTime"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_input_field"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:hint="Start ⏰"
+                android:paddingHorizontal="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_input_field"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:hint="Select Time ⏰"
-            android:paddingHorizontal="14dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_muted"
-            android:textSize="14sp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="End Time"
+                android:textColor="@color/purple_primary_text"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:id="@+id/etEventEndTime"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_input_field"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:hint="End 🔔"
+                android:paddingHorizontal="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_muted"
+                android:textSize="14sp" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- Auto-delete hint -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="end"
+        android:text="⚡ Event auto-hides after End Time"
+        android:textColor="@color/purple_primary"
+        android:textSize="10.5sp"
+        android:alpha="0.75" />
 
     <EditText
         android:id="@+id/etEventDesc"

@@ -14,17 +14,10 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
-/**
- * REFACTORED: Remote-Configurable Moderation & Algorithmic Analysis
- * Bad words and cyber libel patterns are dynamically fetched from Firestore
- * (collection: "system_config", document: "moderation_rules") so they can be
- * updated remotely without deploying a new APK.
- */
+// Helper class for content moderation and duplicate detection
 public class AiDuplicateDetector {
 
-    // ─────────────────────────────────────────────
-    // RESULT CLASSES
-    // ─────────────────────────────────────────────
+    // Result models
 
     public static class DuplicateResult {
         public boolean isDuplicate;
@@ -52,9 +45,7 @@ public class AiDuplicateDetector {
         }
     }
 
-    // ─────────────────────────────────────────────
-    // DYNAMIC REMOTELY-CONFIGURABLE WORD & PATTERN LISTS
-    // ─────────────────────────────────────────────
+    // Inappropriate words and cyber libel phrases list
 
     private static final Set<String> dynamicInappropriateWords = Collections.synchronizedSet(new HashSet<>(Arrays.asList(
             "fuck", "shit", "bitch", "asshole", "bastard", "damn", "crap",
@@ -80,11 +71,7 @@ public class AiDuplicateDetector {
             "i will kill", "i will hurt", "you will regret"
     ));
 
-    // ─────────────────────────────────────────────
-    // PERFORMANCE FIX: Pre-compiled regex pattern caches
-    // Pattern.compile() is expensive. These lists are built ONCE when rules are
-    // fetched and reused on every call to checkInappropriateContent().
-    // ─────────────────────────────────────────────
+    // Cached compiled patterns
     private static final List<Pattern> compiledInappropriatePatterns = new CopyOnWriteArrayList<>();
     private static final List<Pattern> compiledLibelPatterns = new CopyOnWriteArrayList<>();
 
@@ -179,9 +166,7 @@ public class AiDuplicateDetector {
         return Collections.unmodifiableList(dynamicCyberLibelPatterns);
     }
 
-    // ─────────────────────────────────────────────
-    // 1. TEXT DUPLICATE DETECTION (Jaccard Similarity)
-    // ─────────────────────────────────────────────
+    // Check duplicate text using Jaccard similarity
 
     public static DuplicateResult checkForDuplicates(String newContent, List<Post> existingPosts) {
         if (newContent == null || newContent.trim().isEmpty() || existingPosts == null || existingPosts.isEmpty()) {
@@ -203,17 +188,13 @@ public class AiDuplicateDetector {
         return new DuplicateResult(false, 0, null);
     }
 
-    // ─────────────────────────────────────────────
-    // 2. INAPPROPRIATE CONTENT DETECTION
-    // ─────────────────────────────────────────────
-
+    // Check for inappropriate words and cyber libel phrases
     public static ModerationResult checkInappropriateContent(String text) {
         if (text == null || text.trim().isEmpty()) {
             return new ModerationResult(false, null, "Content is clean.", 0);
         }
 
-        // PERFORMANCE FIX: Use pre-compiled patterns — no Pattern.compile() called in this loop.
-        // Patterns are compiled once in recompilePatterns() and cached in compiledInappropriatePatterns.
+        // Check bad words
         for (Pattern pattern : compiledInappropriatePatterns) {
             java.util.regex.Matcher m = pattern.matcher(text);
             if (m.find()) {
@@ -245,23 +226,15 @@ public class AiDuplicateDetector {
         return new ModerationResult(false, null, "Content is clean.", 0);
     }
 
-    // ─────────────────────────────────────────────
-    // 3. IMAGE DUPLICATE DETECTION (Perceptual Hash)
-    // ─────────────────────────────────────────────
-
-    /**
-     * Computes an 8x8 average perceptual hash (aHash) of a Bitmap.
-     * Safely scales the image down to an 8x8 thumbnail to prevent OOM.
-     */
+    // Image duplicate detection using average hash (aHash)
     public static String computeImageHash(Bitmap bitmap) {
         if (bitmap == null || bitmap.isRecycled()) return "";
 
         Bitmap small = null;
         try {
-            // Step 1: Resize to 8x8 thumbnail to prevent memory overhead
+            // Resize to 8x8 and convert to grayscale
             small = Bitmap.createScaledBitmap(bitmap, 8, 8, false);
 
-            // Step 2: Convert to grayscale pixels
             int[] grayPixels = new int[64];
             int total = 0;
             for (int y = 0; y < 8; y++) {
@@ -273,10 +246,8 @@ public class AiDuplicateDetector {
                 }
             }
 
-            // Step 3: Compute average brightness
+            // Calculate average brightness and generate binary hash
             int avg = total / 64;
-
-            // Step 4: Build binary hash — 1 if above average, 0 if below
             StringBuilder hash = new StringBuilder();
             for (int p : grayPixels) {
                 hash.append(p >= avg ? "1" : "0");
@@ -362,9 +333,7 @@ public class AiDuplicateDetector {
         return new ModerationResult(false, null, "Image is unique.", 0);
     }
 
-    // ─────────────────────────────────────────────
-    // 4. VIDEO DUPLICATE DETECTION
-    // ─────────────────────────────────────────────
+    // Video duplicate detection using SHA-256 hash
 
     /**
      * Computes SHA-256 hash of an InputStream (e.g., video file).
@@ -413,9 +382,7 @@ public class AiDuplicateDetector {
         return new ModerationResult(false, null, "Video is unique.", 0);
     }
 
-    // ─────────────────────────────────────────────
-    // HELPER METHODS
-    // ─────────────────────────────────────────────
+    // Helper string functions
 
     private static String normalizeText(String text) {
         if (text == null) return "";

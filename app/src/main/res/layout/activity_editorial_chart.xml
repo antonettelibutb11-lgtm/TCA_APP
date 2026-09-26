@@ -60,35 +60,6 @@
                 android:textColor="#E1BEE7"
                 android:textSize="11.5sp" />
         </LinearLayout>
-
-        <!-- Admin Add Member Button (Header) -->
-        <LinearLayout
-            android:id="@+id/btnHeaderAddMember"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_pill_purple_solid"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:src="@drawable/ic_add"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:fontFamily="sans-serif-bold"
-                android:text="Add"
-                android:textColor="@color/white"
-                android:textSize="12.5sp" />
-        </LinearLayout>
     </LinearLayout>
 
     <!-- Search Bar & Filters -->
@@ -233,41 +204,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="72dp"
+            android:paddingBottom="16dp"
             android:paddingTop="8dp" />
 
-        <!-- Floating Add Member Button (Admin Only) -->
-        <LinearLayout
-            android:id="@+id/fabAddMember"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="18dp"
-            android:background="@drawable/bg_purple_button"
-            android:clickable="true"
-            android:elevation="6dp"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="18dp"
-            android:visibility="gone">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_add"
-                app:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:fontFamily="sans-serif-black"
-                android:text="Add Member"
-                android:textColor="@color/white"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-        </LinearLayout>
 
     </FrameLayout>
 

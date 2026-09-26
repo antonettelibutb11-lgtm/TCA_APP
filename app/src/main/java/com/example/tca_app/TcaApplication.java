@@ -6,11 +6,7 @@ import android.util.Log;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreSettings;
 
-/**
- * Custom Application class for centralized app initialization:
- * - Global Theme application (System default, Light, Dark)
- * - Firestore Offline Persistence configuration with robust exception handling
- */
+// Application class for initializing theme and offline database settings
 public class TcaApplication extends Application {
 
     private static final String TAG = "TcaApplication";

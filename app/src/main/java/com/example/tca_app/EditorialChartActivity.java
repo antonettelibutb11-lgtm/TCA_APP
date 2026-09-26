@@ -55,8 +55,6 @@ public class EditorialChartActivity extends AppCompatActivity {
     private String currentSearchQuery = "";
     private boolean isUserAdmin = false;
 
-    private View btnHeaderAddMember;
-    private View fabAddMember;
 
     private boolean isPickingForNewMember = false;
     private Uri newMemberPhotoUri = null;
@@ -128,15 +126,6 @@ public class EditorialChartActivity extends AppCompatActivity {
         etSearchMember = findViewById(R.id.etSearchMember);
         ivClearMemberSearch = findViewById(R.id.ivClearMemberSearch);
 
-        btnHeaderAddMember = findViewById(R.id.btnHeaderAddMember);
-        fabAddMember = findViewById(R.id.fabAddMember);
-
-        if (btnHeaderAddMember != null) {
-            btnHeaderAddMember.setOnClickListener(v -> showAddMemberDialog());
-        }
-        if (fabAddMember != null) {
-            fabAddMember.setOnClickListener(v -> showAddMemberDialog());
-        }
 
         tabDeptAll = findViewById(R.id.tabDeptAll);
         tabDeptEditorial = findViewById(R.id.tabDeptEditorial);
@@ -148,6 +137,7 @@ public class EditorialChartActivity extends AppCompatActivity {
         rvEditorialMembers.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new EditorialMemberAdapter(this, displayedMembersList, this::showPhotoChangeDialog);
+        adapter.setEditListener(this::showEditMemberDialog);
         rvEditorialMembers.setAdapter(adapter);
 
         // Security check: Only Admin can update member pictures or add members
@@ -156,12 +146,6 @@ public class EditorialChartActivity extends AppCompatActivity {
             isUserAdmin = isAdmin;
             if (adapter != null) {
                 adapter.setAdmin(isAdmin);
-            }
-            if (btnHeaderAddMember != null) {
-                btnHeaderAddMember.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
-            }
-            if (fabAddMember != null) {
-                fabAddMember.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
             }
             if (isAdmin && getIntent().getBooleanExtra("OPEN_ADD_MEMBER_DIALOG", false)) {
                 getIntent().removeExtra("OPEN_ADD_MEMBER_DIALOG");
@@ -428,6 +412,107 @@ public class EditorialChartActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    private void showEditMemberDialog(EditorialMember member) {
+        if (!isUserAdmin) return;
+
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Edit Member Info");
+
+        android.view.View dialogLayout = getLayoutInflater().inflate(R.layout.dialog_add_editorial_member, null);
+        builder.setView(dialogLayout);
+
+        // Reuse the add-member dialog layout fields
+        android.widget.EditText etName = dialogLayout.findViewById(R.id.etNewMemberName);
+        android.widget.Spinner spinnerDept = dialogLayout.findViewById(R.id.spinnerNewMemberDept);
+        android.widget.EditText etRole = dialogLayout.findViewById(R.id.etNewMemberRole);
+        android.widget.TextView btnCancel = dialogLayout.findViewById(R.id.btnCancelAddMember);
+        android.widget.TextView btnSubmit = dialogLayout.findViewById(R.id.btnSubmitAddMember);
+        android.widget.ProgressBar pb = dialogLayout.findViewById(R.id.pbAddMemberLoading);
+
+        // Hide photo picker section (not needed for edit)
+        android.view.View btnPickPhoto = dialogLayout.findViewById(R.id.btnPickNewMemberPhoto);
+        if (btnPickPhoto != null) btnPickPhoto.setVisibility(android.view.View.GONE);
+
+        // Pre-fill current values
+        etName.setText(member.getName());
+        etRole.setText(member.getRole());
+        btnSubmit.setText("Save Changes");
+
+        // Spinner setup
+        String[] departments = new String[]{
+                "Editorial Board",
+                "Writing Department",
+                "Creative Department",
+                "Broadcasting Department"
+        };
+        android.widget.ArrayAdapter<String> spinnerAdapter = new android.widget.ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_dropdown_item, departments);
+        spinnerDept.setAdapter(spinnerAdapter);
+        for (int i = 0; i < departments.length; i++) {
+            if (departments[i].equalsIgnoreCase(member.getDepartment())) {
+                spinnerDept.setSelection(i);
+                break;
+            }
+        }
+
+        android.app.AlertDialog editDialog = builder.create();
+        if (editDialog.getWindow() != null) {
+            editDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        btnCancel.setOnClickListener(v -> editDialog.dismiss());
+        btnSubmit.setOnClickListener(v -> {
+            String newName = etName.getText() != null ? etName.getText().toString().trim() : "";
+            String newDept = spinnerDept.getSelectedItem() != null ? spinnerDept.getSelectedItem().toString() : member.getDepartment();
+            String newRole = etRole.getText() != null ? etRole.getText().toString().trim() : "";
+
+            if (newName.isEmpty()) {
+                etName.setError("Name is required");
+                etName.requestFocus();
+                return;
+            }
+            if (newRole.isEmpty()) {
+                etRole.setError("Role is required");
+                etRole.requestFocus();
+                return;
+            }
+
+            pb.setVisibility(android.view.View.VISIBLE);
+            btnSubmit.setEnabled(false);
+            btnCancel.setEnabled(false);
+
+            EditorialMemberRepository.updateMemberInfo(this, member.getId(), newName, newDept, newRole,
+                    new EditorialMemberRepository.MemberUpdateCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                member.setName(newName);
+                                member.setDepartment(newDept);
+                                member.setRole(newRole);
+                                if (tvTotalMemberCount != null) {
+                                    tvTotalMemberCount.setText("The Campus Access • " + allMembersList.size() + " Staff Members");
+                                }
+                                filterMembers();
+                                if (editDialog.isShowing()) editDialog.dismiss();
+                                Toast.makeText(EditorialChartActivity.this, "Member info updated!", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(String error) {
+                            runOnUiThread(() -> {
+                                pb.setVisibility(android.view.View.GONE);
+                                btnSubmit.setEnabled(true);
+                                btnCancel.setEnabled(true);
+                                Toast.makeText(EditorialChartActivity.this, "Update failed: " + error, Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    });
+        });
+
+        editDialog.show();
     }
 
     private void saveMemberAndFinish(EditorialMember member, AlertDialog dialog, ProgressBar pb, View btnSubmit, View btnCancel) {

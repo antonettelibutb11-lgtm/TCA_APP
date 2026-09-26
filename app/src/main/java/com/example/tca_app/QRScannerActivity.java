@@ -162,7 +162,7 @@ public class QRScannerActivity extends AppCompatActivity {
         checkCameraPermissionAndStart();
     }
 
-    // ──────────────────────────── Camera & Animation ────────────────────────────
+    // Camera and scan laser animation
 
     private void startScanAnimation() {
         if (scanLaserLine == null) return;
@@ -286,18 +286,12 @@ public class QRScannerActivity extends AppCompatActivity {
         }
     }
 
-    // ──────────────────────────── QR Detection Router ───────────────────────────
-
-    /**
-     * Triggered when a QR code is detected by the live scanner.
-     * Routes to either the Voting flow or the Attendance flow based on the QR prefix.
-     */
+    // Handle detected QR code
     private void onQrCodeDetected(String qrContent) {
         triggerHapticFeedback();
         stopScanAnimation();
 
-        // ── VOTING QR ──
-        // Format: TCA-VOTE:<pollId>:<pollQuestion>
+        // Handle voting QR code
         if (qrContent.startsWith(PREFIX_VOTE)) {
             String[] parts = qrContent.split(":", 3);
             String pollId       = parts.length >= 2 ? parts[1] : "";
@@ -306,7 +300,7 @@ public class QRScannerActivity extends AppCompatActivity {
             return;
         }
 
-        // ── ATTENDANCE QR ──
+        // Handle event attendance QR code
         String detectedEventName = currentEventName;
         String detectedEventId   = currentEventId;
 
@@ -333,11 +327,7 @@ public class QRScannerActivity extends AppCompatActivity {
         saveAttendanceDirectToDatabase(qrContent, detectedEventId, detectedEventName);
     }
 
-    // ──────────────────────────── VOTING FLOW ───────────────────────────────────
-
-    /**
-     * Fetches the voting poll from Firestore and shows the vote-casting dialog.
-     */
+    // Process voting poll QR and show dialog
     private void handleVotingQr(String pollId, String pollQuestion) {
         if (pollId.isEmpty()) {
             Toast.makeText(this, "⚠️ Invalid voting QR code.", Toast.LENGTH_SHORT).show();
@@ -419,7 +409,7 @@ public class QRScannerActivity extends AppCompatActivity {
 
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_cast_vote, null);
 
-        TextView tvPollQuestion = dialogView.findViewById(R.id.tvPollQuestion);
+        TextView tvPollQuestion = dialogView.findViewById(R.id.tvVoteQuestion);
         RadioGroup rgOptions    = dialogView.findViewById(R.id.rgVoteOptions);
         TextView btnCancelVote  = dialogView.findViewById(R.id.btnCancelVote);
         TextView btnSubmitVote  = dialogView.findViewById(R.id.btnSubmitVote);
@@ -568,7 +558,7 @@ public class QRScannerActivity extends AppCompatActivity {
         Toast.makeText(this, "🗳️ Your vote has been recorded!", Toast.LENGTH_SHORT).show();
     }
 
-    // ──────────────────────────── ATTENDANCE FLOW ───────────────────────────────
+    // Process event attendance QR and save record
 
     /**
      * Directly writes the attendance record to Firebase Firestore.
@@ -664,7 +654,7 @@ public class QRScannerActivity extends AppCompatActivity {
         Toast.makeText(this, "🎉 Attendance recorded directly in database!", Toast.LENGTH_SHORT).show();
     }
 
-    // ──────────────────────────── Shared Utilities ──────────────────────────────
+    // Scanner helper methods
 
     private void resetScanner() {
         isProcessingQr.set(false);

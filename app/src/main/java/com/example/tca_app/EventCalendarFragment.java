@@ -74,7 +74,7 @@ public class EventCalendarFragment extends Fragment {
             btnAddEvent.setVisibility(View.GONE); // Default GONE for security
         }
 
-        // Enforce Campus Access Membership & Admin Access Control
+        // Check user access
         checkUserMembershipAndAdminAccess();
 
         // Dynamically update the Month/Year header and Today badge
@@ -225,10 +225,18 @@ public class EventCalendarFragment extends Fragment {
     }
 
     private boolean isPastEvent(EventItem event) {
+        long nowMillis = System.currentTimeMillis();
+
+        // If an exact end time is stored, use it for precise auto-expiry
+        if (event.hasEndTime()) {
+            return nowMillis > event.getEndTimeMillis();
+        }
+
+        // Fallback: day-level comparison (event expires end of its start day)
         Calendar curCal = getCurrentCalendar();
-        int curYear = curCal.get(Calendar.YEAR);
+        int curYear  = curCal.get(Calendar.YEAR);
         int curMonth = curCal.get(Calendar.MONTH) + 1;
-        int curDay = curCal.get(Calendar.DAY_OF_MONTH);
+        int curDay   = curCal.get(Calendar.DAY_OF_MONTH);
 
         if (event.getYear() < curYear) return true;
         if (event.getYear() == curYear && event.getMonth() < curMonth) return true;
@@ -275,20 +283,26 @@ public class EventCalendarFragment extends Fragment {
         AlertDialog dialog = builder.create();
 
         EditText etEventTitle = dialogView.findViewById(R.id.etEventTitle);
-        TextView etEventDay = dialogView.findViewById(R.id.etEventDay);
-        TextView etEventTime = dialogView.findViewById(R.id.etEventTime);
-        EditText etEventDesc = dialogView.findViewById(R.id.etEventDesc);
-        TextView btnCancel = dialogView.findViewById(R.id.btnCancelAddEvent);
-        TextView btnSave = dialogView.findViewById(R.id.btnSaveNewEvent);
+        TextView etEventDay   = dialogView.findViewById(R.id.etEventDay);
+        TextView etEventTime  = dialogView.findViewById(R.id.etEventTime);
+        TextView etEventEndTime = dialogView.findViewById(R.id.etEventEndTime);
+        EditText etEventDesc  = dialogView.findViewById(R.id.etEventDesc);
+        TextView btnCancel    = dialogView.findViewById(R.id.btnCancelAddEvent);
+        TextView btnSave      = dialogView.findViewById(R.id.btnSaveNewEvent);
 
-        final int[] selectedDay = {getCurrentDay()};
+        final int[] selectedDay   = {getCurrentDay()};
         final int[] selectedMonth = {getCurrentMonth()};
-        final int[] selectedYear = {getCurrentYear()};
+        final int[] selectedYear  = {getCurrentYear()};
+
+        // Store picked hour/minute for start and end so we can build exact epoch ms later
+        final int[] startHour   = {9};  final int[] startMin   = {0};
+        final int[] endHour     = {-1}; final int[] endMin     = {-1};
 
         final boolean[] isDateSelected = {false};
 
         String[] monthNames = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
+        // Date picker
         etEventDay.setFocusable(false);
         etEventDay.setClickable(true);
         etEventDay.setOnClickListener(v -> {
@@ -296,9 +310,9 @@ public class EventCalendarFragment extends Fragment {
                     requireContext(),
                     R.style.CustomDatePickerDialog,
                     (view1, year, month, dayOfMonth) -> {
-                        selectedYear[0] = year;
+                        selectedYear[0]  = year;
                         selectedMonth[0] = month + 1;
-                        selectedDay[0] = dayOfMonth;
+                        selectedDay[0]   = dayOfMonth;
                         isDateSelected[0] = true;
                         String monthStr = (month >= 0 && month < 12) ? monthNames[month] : "Aug";
                         etEventDay.setText(monthStr + " " + dayOfMonth + ", " + year);
@@ -309,32 +323,51 @@ public class EventCalendarFragment extends Fragment {
             datePickerDialog.show();
         });
 
+        // Start time picker
         etEventTime.setFocusable(false);
         etEventTime.setClickable(true);
         etEventTime.setOnClickListener(v -> {
             Calendar cal = getCurrentCalendar();
-            int hour = cal.get(Calendar.HOUR_OF_DAY);
-            int minute = cal.get(Calendar.MINUTE);
-
-            android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+            android.app.TimePickerDialog tp = new android.app.TimePickerDialog(
                     requireContext(),
                     R.style.CustomDatePickerDialog,
                     (view12, hourOfDay, min) -> {
+                        startHour[0] = hourOfDay;
+                        startMin[0]  = min;
                         String amPm = (hourOfDay >= 12) ? "PM" : "AM";
-                        int hour12 = (hourOfDay % 12 == 0) ? 12 : (hourOfDay % 12);
-                        String formattedTime = String.format(Locale.US, "%d:%02d %s", hour12, min, amPm);
-                        etEventTime.setText(formattedTime);
+                        int h12 = (hourOfDay % 12 == 0) ? 12 : (hourOfDay % 12);
+                        etEventTime.setText(String.format(Locale.US, "%d:%02d %s", h12, min, amPm));
                         etEventTime.setError(null);
                     },
-                    hour, minute, false
+                    cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), false
             );
-            timePickerDialog.show();
+            tp.show();
+        });
+
+        // End time picker
+        etEventEndTime.setFocusable(false);
+        etEventEndTime.setClickable(true);
+        etEventEndTime.setOnClickListener(v -> {
+            int defHour = (startHour[0] >= 0) ? startHour[0] + 1 : getCurrentCalendar().get(Calendar.HOUR_OF_DAY);
+            android.app.TimePickerDialog tp = new android.app.TimePickerDialog(
+                    requireContext(),
+                    R.style.CustomDatePickerDialog,
+                    (view12, hourOfDay, min) -> {
+                        endHour[0] = hourOfDay;
+                        endMin[0]  = min;
+                        String amPm = (hourOfDay >= 12) ? "PM" : "AM";
+                        int h12 = (hourOfDay % 12 == 0) ? 12 : (hourOfDay % 12);
+                        etEventEndTime.setText(String.format(Locale.US, "%d:%02d %s", h12, min, amPm));
+                    },
+                    defHour, 0, false
+            );
+            tp.show();
         });
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
         btnSave.setOnClickListener(v -> {
-            String title = etEventTitle.getText().toString().trim();
+            String title   = etEventTitle.getText().toString().trim();
             String timeStr = etEventTime.getText().toString().trim();
             String descStr = etEventDesc != null ? etEventDesc.getText().toString().trim() : "";
 
@@ -342,30 +375,47 @@ public class EventCalendarFragment extends Fragment {
                 etEventTitle.setError("Please enter event title");
                 return;
             }
-
             if (!isDateSelected[0] && etEventDay.getText().toString().trim().isEmpty()) {
                 etEventDay.setError("Please select a date");
                 return;
             }
 
-            btnSave.setEnabled(false); // Lock button against spam-clicking
+            btnSave.setEnabled(false);
 
             int day = selectedDay[0];
-
             final String finalTime = timeStr.isEmpty() ? "9:00 AM" : timeStr;
             final String finalDesc = descStr.isEmpty() ? "(Scan QR Code for check-in)" : descStr;
 
-            String newId = String.valueOf(System.currentTimeMillis());
-            EventItem newEvent = new EventItem(newId, title, day, selectedMonth[0], selectedYear[0], finalTime, finalDesc);
+            // Build end time string and epoch ms for auto-expiry
+            final String finalEndTime;
+            final long finalEndTimeMillis;
+            if (endHour[0] >= 0) {
+                String endAmPm = (endHour[0] >= 12) ? "PM" : "AM";
+                int endH12 = (endHour[0] % 12 == 0) ? 12 : (endHour[0] % 12);
+                finalEndTime = String.format(Locale.US, "%d:%02d %s", endH12, endMin[0], endAmPm);
+                // Build exact epoch for the end date+time
+                Calendar endCal = Calendar.getInstance();
+                endCal.set(selectedYear[0], selectedMonth[0] - 1, day, endHour[0], endMin[0], 0);
+                endCal.set(Calendar.MILLISECOND, 0);
+                finalEndTimeMillis = endCal.getTimeInMillis();
+            } else {
+                finalEndTime = "";
+                finalEndTimeMillis = 0L;
+            }
 
-            // Zero-Trust Security: Enforced via firestore.rules rather than Cloud Functions
+            String newId = String.valueOf(System.currentTimeMillis());
+            EventItem newEvent = new EventItem(newId, title, day, selectedMonth[0], selectedYear[0],
+                    finalTime, finalEndTime, finalEndTimeMillis, finalDesc);
+
             Map<String, Object> eventMap = new HashMap<>();
-            eventMap.put("title", title);
-            eventMap.put("day", day);
-            eventMap.put("month", selectedMonth[0]);
-            eventMap.put("year", selectedYear[0]);
-            eventMap.put("time", finalTime);
-            eventMap.put("description", finalDesc);
+            eventMap.put("title",          title);
+            eventMap.put("day",            day);
+            eventMap.put("month",          selectedMonth[0]);
+            eventMap.put("year",           selectedYear[0]);
+            eventMap.put("time",           finalTime);
+            eventMap.put("endTime",        finalEndTime);
+            eventMap.put("endTimeMillis",  finalEndTimeMillis);
+            eventMap.put("description",    finalDesc);
 
             FirebaseFirestore.getInstance().collection("events").add(eventMap)
                     .addOnSuccessListener(result -> {
@@ -380,7 +430,6 @@ public class EventCalendarFragment extends Fragment {
                             Toast.makeText(getActivity(), "✅ Event created!", Toast.LENGTH_SHORT).show();
                         }
 
-                        // Step 2 — Ask admin: create a voting poll for this event?
                         showPostEventOptionsDialog(newEvent);
                     })
                     .addOnFailureListener(e -> {
@@ -401,8 +450,7 @@ public class EventCalendarFragment extends Fragment {
             eventsListenerRegistration = null;
         }
 
-        // COST FIX: .limit(50) caps the events fetched. Past events are already filtered
-        // client-side via isPastEvent(), so fetching hundreds of old events would be wasteful.
+        // Fetch upcoming events from Firestore
         eventsListenerRegistration = FirebaseFirestore.getInstance()
                 .collection("events")
                 .orderBy("year", com.google.firebase.firestore.Query.Direction.ASCENDING)
@@ -419,6 +467,9 @@ public class EventCalendarFragment extends Fragment {
                             String time = doc.getString("time");
                             String desc = doc.getString("description");
 
+                            String endTimeStr  = doc.getString("endTime");
+                            Long endTimeMillis = doc.getLong("endTimeMillis");
+
                             EventItem item = new EventItem(
                                     doc.getId(),
                                     title != null ? title : "Campus Event",
@@ -426,6 +477,8 @@ public class EventCalendarFragment extends Fragment {
                                     month != null ? month.intValue() : getCurrentMonth(),
                                     year != null ? year.intValue() : getCurrentYear(),
                                     time != null ? time : "8:00 AM",
+                                    endTimeStr != null ? endTimeStr : "",
+                                    endTimeMillis != null ? endTimeMillis : 0L,
                                     desc != null ? desc : "(Scan QR Code for check-in)"
                             );
                             allEvents.add(item);
@@ -577,13 +630,7 @@ public class EventCalendarFragment extends Fragment {
         dialog.show();
     }
 
-    // ─────────────────────── Post-Event Options Dialog ───────────────────────
-
-    /**
-     * After creating an event, presents two action buttons:
-     *  1. "📷 Show Attendance QR" — existing flow
-     *  2. "🗳️ Create Voting Poll" — new flow
-     */
+    // Post-event options dialog (Attendance QR or Voting Poll)
     private void showPostEventOptionsDialog(EventItem event) {
         if (!isAdded() || getContext() == null) return;
 
@@ -602,12 +649,7 @@ public class EventCalendarFragment extends Fragment {
                 .show();
     }
 
-    // ─────────────────────── Create Voting Poll Dialog ───────────────────────
-
-    /**
-     * Admin dialog to create a Voting Poll linked to an event.
-     * Generates a TCA-VOTE:<pollId>:<question> QR code and posts it to the feed.
-     */
+    // Dialog for creating a voting poll linked to this event
     private void showCreateVotingPollDialog(EventItem event) {
         if (!isAdded() || getContext() == null) return;
 

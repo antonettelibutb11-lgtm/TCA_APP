@@ -21,15 +21,24 @@ public class EditorialMemberAdapter extends RecyclerView.Adapter<EditorialMember
         void onPhotoClick(EditorialMember member);
     }
 
+    public interface OnMemberEditClickListener {
+        void onEditClick(EditorialMember member);
+    }
+
     private final Context context;
     private final List<EditorialMember> memberList;
-    private final OnMemberPhotoClickListener listener;
+    private final OnMemberPhotoClickListener photoListener;
+    private OnMemberEditClickListener editListener;
     private boolean isAdmin = false;
 
-    public EditorialMemberAdapter(Context context, List<EditorialMember> memberList, OnMemberPhotoClickListener listener) {
+    public EditorialMemberAdapter(Context context, List<EditorialMember> memberList, OnMemberPhotoClickListener photoListener) {
         this.context = context;
         this.memberList = memberList;
-        this.listener = listener;
+        this.photoListener = photoListener;
+    }
+
+    public void setEditListener(OnMemberEditClickListener editListener) {
+        this.editListener = editListener;
     }
 
     public void setAdmin(boolean isAdmin) {
@@ -74,25 +83,37 @@ public class EditorialMemberAdapter extends RecyclerView.Adapter<EditorialMember
             holder.tvMemberInitials.setVisibility(View.VISIBLE);
         }
 
-        // Only Admin can edit photos
+        // Only Admin can edit
         if (isAdmin) {
             if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setVisibility(View.VISIBLE);
             if (holder.btnChangePhoto != null) holder.btnChangePhoto.setVisibility(View.VISIBLE);
 
-            View.OnClickListener clickAction = v -> {
-                if (listener != null) {
-                    listener.onPhotoClick(member);
+            // Camera badge / avatar frame → change photo
+            View.OnClickListener photoClickAction = v -> {
+                if (photoListener != null) {
+                    photoListener.onPhotoClick(member);
                 }
             };
-            holder.frameMemberAvatar.setOnClickListener(clickAction);
-            holder.btnChangePhoto.setOnClickListener(clickAction);
-            holder.itemView.setOnClickListener(clickAction);
+            holder.frameMemberAvatar.setOnClickListener(photoClickAction);
+            if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setOnClickListener(photoClickAction);
+
+            // Pencil icon → edit name & role
+            if (holder.btnChangePhoto != null) {
+                holder.btnChangePhoto.setOnClickListener(v -> {
+                    if (editListener != null) {
+                        editListener.onEditClick(member);
+                    }
+                });
+            }
+
+            holder.itemView.setOnClickListener(null);
         } else {
-            // Student: View-only mode, cannot edit photos
+            // Student: View-only mode
             if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setVisibility(View.GONE);
             if (holder.btnChangePhoto != null) holder.btnChangePhoto.setVisibility(View.GONE);
             holder.frameMemberAvatar.setOnClickListener(null);
-            holder.btnChangePhoto.setOnClickListener(null);
+            if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setOnClickListener(null);
+            if (holder.btnChangePhoto != null) holder.btnChangePhoto.setOnClickListener(null);
             holder.itemView.setOnClickListener(null);
         }
     }

@@ -66,6 +66,20 @@ service cloud.firestore {
     match /system_config/{document=**} {
       allow read, write: if true;
     }
+
+    // 12. Editorial Board & Staff Members
+    match /editorial_members/{document=**} {
+      allow read, write: if true;
+    }
+
+    // 13. Campus Voting Polls & Student Vote Records
+    match /voting_polls/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /vote_records/{document=**} {
+      allow read, write: if true;
+    }
   }
 }
 

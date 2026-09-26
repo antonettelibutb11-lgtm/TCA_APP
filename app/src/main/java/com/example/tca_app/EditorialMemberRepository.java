@@ -224,6 +224,22 @@ public class EditorialMemberRepository {
                 });
     }
 
+    public static void updateMemberInfo(Context context, String memberId, String newName, String newDepartment, String newRole, MemberUpdateCallback callback) {
+        Map<String, Object> update = new HashMap<>();
+        update.put("name", newName);
+        update.put("department", newDepartment);
+        update.put("role", newRole);
+
+        FirebaseFirestore.getInstance().collection(COLLECTION).document(memberId)
+                .set(update, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onFailure(e.getMessage());
+                });
+    }
+
     private static void applyCachedPhotos(Context context, List<EditorialMember> members) {
         SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         for (EditorialMember m : members) {

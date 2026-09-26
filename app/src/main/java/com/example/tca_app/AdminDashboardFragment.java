@@ -172,7 +172,7 @@ public class AdminDashboardFragment extends Fragment {
         tvEmptyVotingPolls = view.findViewById(R.id.tvEmptyVotingPolls);
         layoutVotingPollsList = view.findViewById(R.id.layoutVotingPollsList);
 
-        // Two-Tier Role-Based Access Enforcement
+        // Check if user is an approved member or admin
         AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
             if (!isAdded() || getContext() == null) return;
 
@@ -259,10 +259,7 @@ public class AdminDashboardFragment extends Fragment {
                 });
     }
 
-    /**
-     * OPTIMIZED FIRESTORE AGGREGATION & SUMMARY LISTENER
-     * Eliminates client-side manual iteration over all documents, avoiding OOM & excessive read billing.
-     */
+    // Load summary analytics counters from Firestore
     private void loadAnalyticsUsingAggregationQueries() {
         if (db == null) return;
 
@@ -378,8 +375,7 @@ public class AdminDashboardFragment extends Fragment {
 
     private void loadModerationQueue() {
         if (db == null) return;
-        // COST FIX: .limit(30) prevents OOM on large moderation queues. Admins see the
-        // 30 most recent unresolved flags — oldest flagged items should be handled first.
+        // Load latest flagged posts for moderation
         db.collection("moderation_queue")
                 .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .limit(30)
@@ -416,8 +412,7 @@ public class AdminDashboardFragment extends Fragment {
     private void loadPendingMembershipRequests() {
         if (db == null) return;
 
-        // COST FIX: .limit(30) caps how many pending requests are fetched at once.
-        // If there are more than 30 pending requests, the admin should process the current batch first.
+        // Load pending membership applications
         db.collection("users")
                 .whereEqualTo("isMemberPending", true)
                 .limit(30)

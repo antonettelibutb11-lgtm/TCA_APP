@@ -6,9 +6,7 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 1. INAPPROPRIATE CONTENT & CYBER LIBEL DICTIONARY
-// ─────────────────────────────────────────────────────────────────────────────
+// Inappropriate words and cyber libel dictionary
 const INAPPROPRIATE_WORDS = [
     // English
     "fuck", "shit", "bitch", "asshole", "bastard", "damn", "crap",
@@ -67,10 +65,7 @@ function analyzeTextContent(text) {
     return { isFlagged: false };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. PERCEPTUAL HASHING ENGINE (aHash)
-// Resizes image to 8x8, converts to grayscale, computes 64-bit binary string.
-// ─────────────────────────────────────────────────────────────────────────────
+// Compute 8x8 average perceptual hash for image duplicate check
 async function computePerceptualHash(imageUrl) {
     try {
         // Fetch image bytes via HTTP GET
@@ -139,10 +134,7 @@ function calculateJaccardTextSimilarity(text1, text2) {
     return Math.round((intersection.size / union.size) * 100);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. FIRESTORE TRIGGER: AUTOMATED BACKEND MODERATION & DUPLICATE AI
-// Triggers automatically whenever a new post document is created.
-// ─────────────────────────────────────────────────────────────────────────────
+// Firestore trigger: check new posts for duplicates and inappropriate language
 exports.onPostCreated = functions.firestore
     .document("posts/{postId}")
     .onCreate(async (snapshot, context) => {
@@ -171,7 +163,7 @@ exports.onPostCreated = functions.firestore
             .limit(100)
             .get();
 
-        // --- STEP A: SERVER-SIDE TEXT DUPLICATE SCAN ---
+        // 1. Check duplicate text content
         for (const doc of existingSnapshot.docs) {
             if (doc.id === postId) continue;
             const existingText = doc.data().content || "";
@@ -184,7 +176,7 @@ exports.onPostCreated = functions.firestore
             }
         }
 
-        // --- STEP B: SERVER-SIDE IMAGE PERCEPTUAL DUPLICATE AI ---
+        // 2. Check duplicate image hash
         if (photoUri && photoUri.startsWith("http")) {
             console.log(`[onPostCreated] Computing server-side perceptual hash for photoUrl...`);
             computedHash = await computePerceptualHash(photoUri);
@@ -210,7 +202,7 @@ exports.onPostCreated = functions.firestore
             }
         }
 
-        // --- STEP B.2: SERVER-SIDE VIDEO DUPLICATE AI ---
+        // 3. Check duplicate video hash
         if (videoHash && videoHash.trim() !== "") {
             for (const doc of existingSnapshot.docs) {
                 if (doc.id === postId) continue; // Skip self
@@ -224,10 +216,10 @@ exports.onPostCreated = functions.firestore
             }
         }
 
-        // --- STEP C: SERVER-SIDE TEXT CONTENT MODERATION ---
+        // 4. Content moderation for bad words
         const textAnalysis = analyzeTextContent(content);
 
-        // --- STEP D: EXECUTE MODERATION ACTIONS ---
+        // Handle flagged posts or duplicate matches
         if (isDuplicateVideo) {
             // Auto-flag duplicate video post to moderation queue
             await snapshot.ref.update({
@@ -342,9 +334,7 @@ exports.onPostCreated = functions.firestore
         return null;
     });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. CALLABLE FUNCTION: SECURE ATTENDANCE VERIFICATION
-// ─────────────────────────────────────────────────────────────────────────────
+// Verify attendance token callable function
 exports.verifyAttendanceToken = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError(
@@ -382,9 +372,7 @@ exports.verifyAttendanceToken = functions.https.onCall(async (data, context) => 
     };
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 5. CALLABLE FUNCTION: SERVER-SIDE ADMIN MODERATION
-// ─────────────────────────────────────────────────────────────────────────────
+// Admin post moderation callable function
 exports.moderatePost = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Auth required.");
@@ -429,9 +417,7 @@ exports.moderatePost = functions.https.onCall(async (data, context) => {
     return { status: "SUCCESS", action };
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. CALLABLE FUNCTION: SECURE ATOMIC LIKES/REACTIONS
-// ─────────────────────────────────────────────────────────────────────────────
+// Atomic like/reaction toggle callable function
 exports.toggleLikePost = functions.https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Auth required.");
