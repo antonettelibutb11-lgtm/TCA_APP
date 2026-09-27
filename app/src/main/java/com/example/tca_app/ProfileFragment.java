@@ -44,7 +44,7 @@ public class ProfileFragment extends Fragment {
     private GridMediaAdapter gridAdapter;
     private List<Post> profilePostsList;
 
-    private TextView tvEmptyStateProfile;
+    private View tvEmptyStateProfile;
     private ListenerRegistration profileListenerRegistration;
     private android.widget.Spinner spinnerGalleryFolder;
     private List<Post> allCategoryPosts = new ArrayList<>();

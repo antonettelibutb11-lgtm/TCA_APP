@@ -496,13 +496,6 @@ public class EventCalendarFragment extends Fragment {
             return;
         }
 
-        String email = currentUser.getEmail() != null ? currentUser.getEmail().toLowerCase() : "";
-        if ("antonettebandal.11@gmail.com".equalsIgnoreCase(email)) {
-            if (btnAddEvent != null) btnAddEvent.setVisibility(View.VISIBLE);
-            if (btnScanQr != null) btnScanQr.setVisibility(View.GONE); // Admin generates/shows QR, does not scan
-            return;
-        }
-
         AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
             if (!isAdded() || getContext() == null) return;
             if (isAdmin) {

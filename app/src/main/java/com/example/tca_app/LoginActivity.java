@@ -41,12 +41,6 @@ public class LoginActivity extends AppCompatActivity {
         cloudinaryConfig.put("uploadPreset", "lh0lmbrs");
         db.collection("system_config").document("cloudinary").set(cloudinaryConfig);
 
-        // AUTO-SETUP OFFICIAL ADMIN RECORD IN FIRESTORE
-        java.util.Map<String, Object> adminStaff = new java.util.HashMap<>();
-        adminStaff.put("email", "antonettebandal.11@gmail.com");
-        adminStaff.put("name", "Antonette Bandal");
-        adminStaff.put("role", "ADMIN");
-        db.collection("official_staff").document("antonettebandal_admin").set(adminStaff, com.google.firebase.firestore.SetOptions.merge());
 
         TextView tvLoginTitle = findViewById(R.id.tvLoginTitle);
         TextView tabStudent = findViewById(R.id.tabStudent);
@@ -265,8 +259,8 @@ public class LoginActivity extends AppCompatActivity {
 
         String lowerEmail = email.trim().toLowerCase();
 
-        // 1. Built-in instant whitelist for primary admin and BISU institutional domain
-        if (lowerEmail.equals("antonettebandal.11@gmail.com") || lowerEmail.endsWith("@bisu.edu.ph")) {
+        // 1. Built-in instant whitelist for BISU institutional domain
+        if (lowerEmail.endsWith("@bisu.edu.ph")) {
             callback.onResult(true);
             return;
         }
@@ -306,8 +300,7 @@ public class LoginActivity extends AppCompatActivity {
                     Boolean existingIsMember = docExists ? doc.getBoolean("isMember") : null;
                     Boolean existingIsMemberPending = docExists ? doc.getBoolean("isMemberPending") : null;
 
-                    boolean isEmailAdmin = "antonettebandal.11@gmail.com".equalsIgnoreCase(email);
-                    boolean isAdminTabSelected = "ADMIN".equalsIgnoreCase(requestedRole) || isEmailAdmin;
+                    boolean isAdminTabSelected = "ADMIN".equalsIgnoreCase(requestedRole) || "ADMIN".equalsIgnoreCase(existingRole);
                     String finalRole = isAdminTabSelected ? "ADMIN" : existingRole;
                     boolean isMember = isAdminTabSelected || Boolean.TRUE.equals(existingIsMember);
                     boolean isMemberPending = !isAdminTabSelected && Boolean.TRUE.equals(existingIsMemberPending);

@@ -56,19 +56,14 @@ public class AuthUtils {
                     if (task.isSuccessful() && task.getResult() != null && task.getResult().exists()) {
                         DocumentSnapshot doc = task.getResult();
                         String role = doc.getString("role");
-                        String docEmail = doc.getString("email");
-                        if (docEmail != null) docEmail = docEmail.toLowerCase();
                         Boolean isMemberVal = doc.getBoolean("isMember");
 
-                        boolean isAdmin = (role != null && ("ADMIN".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role)))
-                                || "antonettebandal.11@gmail.com".equalsIgnoreCase(currentEmail)
-                                || "antonettebandal.11@gmail.com".equalsIgnoreCase(docEmail);
+                        boolean isAdmin = role != null && ("ADMIN".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role));
                         boolean isApprovedMember = Boolean.TRUE.equals(isMemberVal) || isAdmin;
 
                         callback.onResult(isApprovedMember, isAdmin, isAdmin ? "ADMIN" : (role != null ? role : "STUDENT"));
                     } else {
-                        boolean isAdmin = "antonettebandal.11@gmail.com".equalsIgnoreCase(currentEmail);
-                        callback.onResult(isAdmin, isAdmin, isAdmin ? "ADMIN" : "STUDENT");
+                        callback.onResult(false, false, "STUDENT");
                     }
                 });
     }

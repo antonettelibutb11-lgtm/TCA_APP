@@ -322,12 +322,9 @@ public class CreatePostActivity extends AppCompatActivity {
                 return;
             }
 
-            String userEmail = currentUser.getEmail() != null ? currentUser.getEmail().toLowerCase() : "";
-            boolean isDirectAdmin = "antonettebandal.11@gmail.com".equalsIgnoreCase(userEmail);
-
             // Membership & Posting Restriction Check
             AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
-                boolean hasPermission = isApprovedMember || isAdmin || isDirectAdmin;
+                boolean hasPermission = isApprovedMember || isAdmin;
 
                 if (!hasPermission) {
                     if (btnPublish != null) {
@@ -348,7 +345,7 @@ public class CreatePostActivity extends AppCompatActivity {
                 String folderName = (etFolderName != null) ? etFolderName.getText().toString().trim() : "";
 
                 // Proceed to pre-upload duplicate check
-                performPreUploadDuplicateCheck(text, category, folderName, isPinned, isFeatured, isAdmin || isDirectAdmin);
+                performPreUploadDuplicateCheck(text, category, folderName, isPinned, isFeatured, isAdmin);
             });
         });
     }
