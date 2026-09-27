@@ -19,6 +19,18 @@ public class DarkModeActivity extends AppCompatActivity {
         ImageView btnBack = findViewById(R.id.btnBack);
         btnBack.setOnClickListener(v -> finish());
 
+        View headerBar = findViewById(R.id.headerBar);
+        if (headerBar != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(headerBar, (v, insets) -> {
+                androidx.core.graphics.Insets systemBars = insets.getInsets(
+                        androidx.core.view.WindowInsetsCompat.Type.statusBars() |
+                        androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                );
+                v.setPadding(v.getPaddingLeft(), systemBars.top + 12, v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
+            });
+        }
+
         View rowOn = findViewById(R.id.rowOn);
         View rowOff = findViewById(R.id.rowOff);
 

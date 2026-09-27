@@ -22,6 +22,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import androidx.lifecycle.ViewModelProvider;
+import com.example.tca_app.PostViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +33,7 @@ public class HomeFeedFragment extends Fragment {
     private RecyclerView rvNewsFeed;
     private PostAdapter adapter;
     private List<Post> allPostsList;
+private PostViewModel postViewModel;
     private List<Post> displayPostsList;
     private FirebaseFirestore db;
     private ListenerRegistration postsListener;
@@ -122,9 +125,21 @@ public class HomeFeedFragment extends Fragment {
                     cardCreatePost.setVisibility((isApprovedMember || isAdmin) ? View.VISIBLE : View.GONE);
                 }
             });
+// Initialize ViewModel and observe posts
+postViewModel = new ViewModelProvider(this).get(PostViewModel.class);
+postViewModel.getPostsLiveData().observe(getViewLifecycleOwner(), posts -> {
+    allPostsList.clear();
+    if (posts != null) allPostsList.addAll(posts);
+    filterPosts();
+});
+postViewModel.getErrorLiveData().observe(getViewLifecycleOwner(), err -> {
+    if (err != null) android.widget.Toast.makeText(getContext(), err, android.widget.Toast.LENGTH_SHORT).show();
+});
+// Start listening to posts
+postViewModel.startListening(selectedCategory);
         }
 
-        listenToFirebasePosts();
+        // Deprecated direct Firebase call removed
 
         return view;
     }
@@ -151,7 +166,7 @@ public class HomeFeedFragment extends Fragment {
     private void selectCategory(String category, TextView selectedChipView) {
         this.selectedCategory = category;
         updateChipStyles(selectedChipView);
-        listenToFirebasePosts();
+        postViewModel.startListening(selectedCategory);
     }
 
     private void updateChipStyles(TextView activeChipView) {

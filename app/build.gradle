@@ -33,6 +33,12 @@ android {
 dependencies {
     implementation libs.activity.ktx
     implementation libs.appcompat
+
+    // MVVM Architecture Components — ViewModel + LiveData
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.7'
+    implementation 'androidx.fragment:fragment:1.8.6'
     implementation libs.constraintlayout
     implementation libs.material
 

@@ -57,8 +57,10 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
         String senderId = msg.getSenderId() != null ? msg.getSenderId().trim() : "";
         String myId = currentUserId != null ? currentUserId.trim() : "";
-        boolean isSentByMe = (!myId.isEmpty() && senderId.equalsIgnoreCase(myId))
-                || (isCurrentUserAdmin && "ADMIN".equalsIgnoreCase(msg.getSenderRole()));
+        // Determine if the message was sent by the current user based on UID only.
+        // Do NOT rely on senderRole for this — admin messages from OTHER admins
+        // should still appear on the LEFT (received), not the RIGHT (sent).
+        boolean isSentByMe = !myId.isEmpty() && senderId.equalsIgnoreCase(myId);
 
         if (isSentByMe) {
             // Sent message (Right)
