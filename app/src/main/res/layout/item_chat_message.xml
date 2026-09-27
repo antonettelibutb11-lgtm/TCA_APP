@@ -99,7 +99,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:maxWidth="240dp"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
         <TextView
