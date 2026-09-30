@@ -331,6 +331,38 @@ exports.onPostCreated = functions.firestore
         }, { merge: true });
 
         console.log(`[COMPLETED] Post ${postId} verified as clean & APPROVED.`);
+
+        // Broadcast Heads-up Pop-up Push Notification to all campus devices via FCM topic
+        try {
+            const postSnippet = content.length > 80 ? content.substring(0, 80) + "..." : content;
+            await admin.messaging().send({
+                topic: "campus_posts",
+                notification: {
+                    title: "📰 New Post • The Campus Access",
+                    body: `${authorName}: "${postSnippet}"`
+                },
+                data: {
+                    type: "new_post",
+                    postId: postId,
+                    authorName: authorName,
+                    title: "📰 New Post • The Campus Access",
+                    body: `${authorName}: "${postSnippet}"`
+                },
+                android: {
+                    priority: "high",
+                    notification: {
+                        channelId: "tca_posts_channel",
+                        priority: "high",
+                        defaultSound: true,
+                        defaultVibrateTimings: true
+                    }
+                }
+            });
+            console.log(`[FCM] New post notification sent to topic campus_posts for post ${postId}`);
+        } catch (fcmErr) {
+            console.error(`[FCM] Failed to send post notification for ${postId}:`, fcmErr.message);
+        }
+
         return null;
     });
 
@@ -453,3 +485,129 @@ exports.toggleLikePost = functions.https.onCall(async (data, context) => {
         }
     });
 });
+
+// Push notification trigger for Likes, Reactions & Comments
+exports.onUserNotificationCreated = functions.firestore
+    .document("users/{userId}/notifications/{notifId}")
+    .onCreate(async (snapshot, context) => {
+        const notifData = snapshot.data();
+        const userId = context.params.userId;
+        if (!notifData) return null;
+
+        const title = notifData.title || "❤️ New Interaction";
+        const body = notifData.message || "Someone interacted with your post!";
+        const type = notifData.type || "like";
+        const postId = notifData.postId || "";
+
+        try {
+            const userDoc = await db.collection("users").doc(userId).get();
+            if (!userDoc.exists) return null;
+
+            const userData = userDoc.data();
+            const fcmTokens = userData.fcmTokens || (userData.fcmToken ? [userData.fcmToken] : []);
+            if (!fcmTokens || fcmTokens.length === 0) return null;
+
+            const uniqueTokens = Array.from(new Set(fcmTokens.filter(t => typeof t === "string" && t.trim().length > 0)));
+            if (uniqueTokens.length === 0) return null;
+
+            const messagePayload = {
+                notification: { title, body },
+                data: {
+                    type: type.toLowerCase(),
+                    postId: postId,
+                    title: title,
+                    body: body
+                },
+                android: {
+                    priority: "high",
+                    notification: {
+                        channelId: "tca_likes_channel",
+                        priority: "high",
+                        defaultSound: true,
+                        defaultVibrateTimings: true
+                    }
+                },
+                tokens: uniqueTokens
+            };
+
+            const response = await admin.messaging().sendEachForMulticast(messagePayload);
+            console.log(`[FCM] Sent interaction notification to user ${userId}: ${response.successCount} succeeded`);
+        } catch (err) {
+            console.error(`[FCM] Failed to send interaction notification to user ${userId}:`, err.message);
+        }
+        return null;
+    });
+
+// Push notification trigger for incoming Chat Messages
+exports.onChatMessageCreated = functions.firestore
+    .document("chats/{chatId}/messages/{messageId}")
+    .onCreate(async (snapshot, context) => {
+        const msgData = snapshot.data();
+        const chatId = context.params.chatId;
+        if (!msgData) return null;
+
+        const senderId = msgData.senderId;
+        const senderName = msgData.senderName || "Campus Member";
+        const text = msgData.text || "Sent an attachment";
+
+        try {
+            const chatDoc = await db.collection("chats").doc(chatId).get();
+            if (!chatDoc.exists) return null;
+
+            const chatData = chatDoc.data();
+            const studentUid = chatData.studentUid;
+            const adminUid = chatData.adminUid;
+
+            let recipientUid = null;
+            let isAdminReply = false;
+            if (senderId === studentUid) {
+                recipientUid = adminUid || "campus_admin_desk";
+            } else {
+                recipientUid = studentUid;
+                isAdminReply = true;
+            }
+
+            if (!recipientUid || recipientUid === "campus_admin_desk") return null;
+
+            const userDoc = await db.collection("users").doc(recipientUid).get();
+            if (!userDoc.exists) return null;
+
+            const userData = userDoc.data();
+            const fcmTokens = userData.fcmTokens || (userData.fcmToken ? [userData.fcmToken] : []);
+            const uniqueTokens = Array.from(new Set(fcmTokens.filter(t => typeof t === "string" && t.trim().length > 0)));
+            if (uniqueTokens.length === 0) return null;
+
+            const title = isAdminReply ? "The Campus Access • Editorial Desk" : `${senderName} (Student Inquiry)`;
+            const body = text.length > 80 ? text.substring(0, 80) + "..." : text;
+
+            const messagePayload = {
+                notification: { title, body },
+                data: {
+                    type: "chat",
+                    chatId: chatId,
+                    recipientUid: recipientUid,
+                    recipientName: senderName,
+                    isAdminReply: isAdminReply ? "true" : "false",
+                    title: title,
+                    body: body
+                },
+                android: {
+                    priority: "high",
+                    notification: {
+                        channelId: "tca_chat_channel",
+                        priority: "high",
+                        defaultSound: true,
+                        defaultVibrateTimings: true
+                    }
+                },
+                tokens: uniqueTokens
+            };
+
+            const response = await admin.messaging().sendEachForMulticast(messagePayload);
+            console.log(`[FCM] Sent chat notification for ${chatId}: ${response.successCount} succeeded`);
+        } catch (err) {
+            console.error(`[FCM] Failed to send chat notification for ${chatId}:`, err.message);
+        }
+        return null;
+    });
+

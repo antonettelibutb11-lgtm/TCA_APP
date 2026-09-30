@@ -374,6 +374,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                             if (latestPos != RecyclerView.NO_POSITION) {
                                 notifyItemChanged(latestPos);
                             }
+                            ChatNotificationHelper.notifyPostLiked(v.getContext(), post, uid, getSafeDisplayName(FirebaseAuth.getInstance().getCurrentUser()), "👍");
                             Toast.makeText(v.getContext(), "👍 Liked post!", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
@@ -561,6 +562,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                             if (latestPos != RecyclerView.NO_POSITION) {
                                 notifyItemChanged(latestPos);
                             }
+                            ChatNotificationHelper.notifyPostLiked(context, post, uid, getSafeDisplayName(currentUser), finalEmoji);
                             Toast.makeText(context, "Reacted " + finalEmoji + " to post!", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
@@ -712,6 +714,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                                 notifyDataSetChanged();
                                                 btnSendComment.setEnabled(true);
                                                 etCommentText.setText("");
+                                                ChatNotificationHelper.notifyCommentAdded(context, post, u != null ? u.getUid() : "", authorName, commentStr);
                                                 Toast.makeText(context, "💬 Comment posted!", Toast.LENGTH_SHORT).show();
                                             });
                                 })

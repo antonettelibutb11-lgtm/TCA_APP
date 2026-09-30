@@ -34,7 +34,9 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> notificationPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
+                    ChatNotificationHelper.initNotificationChannels(this);
                     ChatNotificationHelper.startListening(this);
+                    ChatNotificationHelper.syncFcmTokenAndTopics(this);
                 }
             });
 
@@ -42,6 +44,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize high-priority pop-up notification channels & request permission
+        ChatNotificationHelper.initNotificationChannels(this);
+        checkNotificationPermission();
+        ChatNotificationHelper.syncFcmTokenAndTopics(this);
 
         isAdmin = getIntent().getBooleanExtra("IS_ADMIN", false);
 
