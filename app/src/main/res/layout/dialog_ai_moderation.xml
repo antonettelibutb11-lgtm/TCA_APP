@@ -68,7 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-bold"
-            android:text="⚡ 95% Confidence • Policy Alert"
+            android:text="Content Policy Notice"
             android:textColor="@color/purple_primary_text"
             android:textSize="11.5sp"
             android:textStyle="bold" />
@@ -108,11 +108,11 @@
             android:layout_height="44dp"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chip_unselected"
+            android:background="@drawable/bg_outline_pill_button"
             android:fontFamily="sans-serif-bold"
-            android:text="✏️ Revise"
+            android:text="Revise Content"
             android:textAllCaps="false"
-            android:textColor="@color/purple_primary_text"
+            android:textColor="@color/text_primary"
             android:textSize="13sp"
             android:textStyle="bold" />
 
@@ -124,7 +124,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_purple_button"
             android:fontFamily="sans-serif-bold"
-            android:text="🗑️ Delete Post"
+            android:text="Delete Post"
             android:textAllCaps="false"
             android:textColor="@color/white"
             android:textSize="13sp"

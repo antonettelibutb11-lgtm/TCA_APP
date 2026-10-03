@@ -142,7 +142,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Filter Tabs (All / Unread) -->
+    <!-- Filter Tabs (All / Unread / Archived) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -160,11 +160,11 @@
             android:clickable="true"
             android:focusable="true"
             android:fontFamily="sans-serif-black"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="14dp"
             android:paddingVertical="6dp"
             android:text="All (0)"
             android:textColor="@color/white"
-            android:textSize="12.5sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -176,11 +176,27 @@
             android:clickable="true"
             android:focusable="true"
             android:fontFamily="sans-serif-black"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="14dp"
             android:paddingVertical="6dp"
             android:text="Unread (0)"
             android:textColor="@color/text_secondary"
-            android:textSize="12.5sp"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tabInboxArchived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_chip_unselected"
+            android:clickable="true"
+            android:focusable="true"
+            android:fontFamily="sans-serif-black"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp"
+            android:text="Archived (0)"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
     </LinearLayout>

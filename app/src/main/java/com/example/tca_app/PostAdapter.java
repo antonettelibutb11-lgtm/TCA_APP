@@ -8,6 +8,9 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ImageView;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -65,10 +68,88 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         Post post = postList.get(position);
         holder.tvAuthorName.setText(post.getAuthorName());
         holder.tvPostMeta.setText(post.getPostMeta());
-        holder.tvPostContent.setText(post.getContent());
-        holder.tvLikeCount.setText(String.valueOf(post.getLikeCount()));
+
+        // Handle post caption with "See more" / "See less" expansion
+        String content = post.getContent();
+        if (content == null || content.trim().isEmpty()) {
+            holder.tvPostContent.setVisibility(View.GONE);
+            if (holder.tvSeeMore != null) {
+                holder.tvSeeMore.setVisibility(View.GONE);
+            }
+        } else {
+            holder.tvPostContent.setVisibility(View.VISIBLE);
+            holder.tvPostContent.setText(content);
+
+            if (holder.tvSeeMore != null) {
+                if (post.isExpanded()) {
+                    holder.tvPostContent.setMaxLines(Integer.MAX_VALUE);
+                    holder.tvPostContent.setEllipsize(null);
+                    holder.tvSeeMore.setText("See less");
+                    holder.tvSeeMore.setVisibility(View.VISIBLE);
+                } else {
+                    holder.tvPostContent.setMaxLines(3);
+                    holder.tvPostContent.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                    holder.tvSeeMore.setVisibility(View.GONE);
+
+                    holder.tvPostContent.post(() -> {
+                        int currentPos = holder.getAdapterPosition();
+                        if (currentPos != RecyclerView.NO_POSITION && currentPos < postList.size() && postList.get(currentPos) == post) {
+                            if (!post.isExpanded()) {
+                                android.text.Layout layout = holder.tvPostContent.getLayout();
+                                if (layout != null) {
+                                    int lineCount = layout.getLineCount();
+                                    boolean hasOverflow = false;
+                                    if (lineCount > 0) {
+                                        if (layout.getEllipsisCount(lineCount - 1) > 0) {
+                                            hasOverflow = true;
+                                        } else if (lineCount >= 3) {
+                                            int endCharIndex = layout.getLineEnd(lineCount - 1);
+                                            if (endCharIndex < content.length()) {
+                                                hasOverflow = true;
+                                            }
+                                        }
+                                    }
+                                    if (hasOverflow) {
+                                        holder.tvSeeMore.setVisibility(View.VISIBLE);
+                                        holder.tvSeeMore.setText("See more");
+                                    } else {
+                                        holder.tvSeeMore.setVisibility(View.GONE);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                View.OnClickListener toggleExpandListener = v -> {
+                    boolean expand = !post.isExpanded();
+                    post.setExpanded(expand);
+                    if (expand) {
+                        holder.tvPostContent.setMaxLines(Integer.MAX_VALUE);
+                        holder.tvPostContent.setEllipsize(null);
+                        holder.tvSeeMore.setText("See less");
+                        holder.tvSeeMore.setVisibility(View.VISIBLE);
+                    } else {
+                        holder.tvPostContent.setMaxLines(3);
+                        holder.tvPostContent.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                        holder.tvSeeMore.setText("See more");
+                        holder.tvSeeMore.setVisibility(View.VISIBLE);
+                    }
+                };
+
+                holder.tvSeeMore.setOnClickListener(toggleExpandListener);
+
+                holder.tvPostContent.setOnClickListener(v -> {
+                    if (!post.isExpanded() && holder.tvSeeMore.getVisibility() == View.VISIBLE) {
+                        toggleExpandListener.onClick(v);
+                    }
+                });
+            }
+        }
+
+        holder.tvLikeCount.setText(formatMetricCount(post.getLikeCount()));
         if (holder.tvCommentLabel != null) {
-            holder.tvCommentLabel.setText(String.valueOf(post.getCommentCount()));
+            holder.tvCommentLabel.setText(formatMetricCount(post.getCommentCount()));
         }
 
         if (post.isPinned()) {
@@ -198,123 +279,21 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         final String uid = (currentUser != null && currentUser.getUid() != null) ? currentUser.getUid() : "guest_user";
 
-        // Direct Save / Download button on post action bar
-        if (holder.btnDownloadPost != null) {
-            holder.btnDownloadPost.setOnClickListener(v -> {
-                MediaDownloadHelper.downloadPostMedia(v.getContext(), post);
-            });
-        }
 
         // Three dots menu for post options
         if (holder.btnMoreOptions != null) {
             holder.btnMoreOptions.setVisibility(View.VISIBLE);
+            holder.btnMoreOptions.setOnClickListener(v -> showProfessionalPostOptions(v.getContext(), post, holder));
+        }
 
-            holder.btnMoreOptions.setOnClickListener(v -> {
-                PopupMenu popup = new PopupMenu(v.getContext(), holder.btnMoreOptions);
-                popup.getMenu().add("Save / Download Media");
-                popup.getMenu().add("Copy Text");
-
-                if (this.isAdmin) {
-                    popup.getMenu().add("Edit");
-                    popup.getMenu().add(post.isPinned() ? "Unpin Post" : "Pin Post");
-                    popup.getMenu().add("Archive");
-                    popup.getMenu().add("Delete");
-                }
-
-                popup.setOnMenuItemClickListener(item -> {
-                    String title = item.getTitle().toString();
-                    if (title.equals("Save / Download Media")) {
-                        MediaDownloadHelper.downloadPostMedia(v.getContext(), post);
-                        return true;
-                    } else if (title.equals("Copy Text")) {
-                        String text = post.getContent();
-                        if (text != null && !text.isEmpty()) {
-                            android.content.ClipboardManager cb = (android.content.ClipboardManager) v.getContext().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                            if (cb != null) {
-                                cb.setPrimaryClip(android.content.ClipData.newPlainText("Post Content", text));
-                                Toast.makeText(v.getContext(), "📋 Post text copied to clipboard!", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                        return true;
-                    } else if (title.equals("Edit")) {
-                        EditText input = new EditText(v.getContext());
-                        input.setText(post.getContent());
-                        input.setSelection(input.getText().length());
-                        new AlertDialog.Builder(v.getContext())
-                                .setTitle("Edit Post")
-                                .setView(input)
-                                .setPositiveButton("Save", (dialog, which) -> {
-                                    String newText = input.getText().toString().trim();
-                                    if (!newText.isEmpty() && post.getId() != null && !post.getId().isEmpty()) {
-                                        FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                                .update("content", newText)
-                                                .addOnSuccessListener(aVoid -> {
-                                                    post.setContent(newText);
-                                                    int currentPos = holder.getAdapterPosition();
-                                                    if (currentPos != RecyclerView.NO_POSITION) {
-                                                        notifyItemChanged(currentPos);
-                                                    }
-                                                    Toast.makeText(v.getContext(), "Post updated successfully!", Toast.LENGTH_SHORT).show();
-                                                })
-                                                .addOnFailureListener(e -> {
-                                                    Toast.makeText(v.getContext(), "Failed to update: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                });
-                                    }
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                        return true;
-                    } else if (title.equals("Pin Post") || title.equals("Unpin Post")) {
-                        boolean newPinnedStatus = title.equals("Pin Post");
-                        FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                .update("isPinned", newPinnedStatus)
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(v.getContext(), newPinnedStatus ? "📌 Post Pinned" : "Post Unpinned", Toast.LENGTH_SHORT).show();
-                                });
-                        return true;
-                    } else if (title.equals("Archive")) {
-                        new AlertDialog.Builder(v.getContext())
-                                .setTitle("Archive Post")
-                                .setMessage("Hide this post from the feed? It won't be deleted, but no one will see it.")
-                                .setPositiveButton("Archive", (dialog, which) -> {
-                                    FirebaseFirestore.getInstance().collection("posts").document(post.getId())
-                                            .update("moderationStatus", "ARCHIVED")
-                                            .addOnSuccessListener(aVoid -> {
-                                                int currentPos = holder.getAdapterPosition();
-                                                if (currentPos != RecyclerView.NO_POSITION) {
-                                                    postList.remove(currentPos);
-                                                    notifyItemRemoved(currentPos);
-                                                    Toast.makeText(v.getContext(), "📦 Post archived", Toast.LENGTH_SHORT).show();
-                                                }
-                                            });
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                        return true;
-                    } else if (title.equals("Delete")) {
-                        new AlertDialog.Builder(v.getContext())
-                                .setTitle("Delete Post")
-                                .setMessage("Are you sure you want to permanently delete this post?")
-                                .setPositiveButton("Delete", (dialog, which) -> {
-                                    FirebaseFirestore.getInstance().collection("posts").document(post.getId()).delete()
-                                            .addOnSuccessListener(aVoid -> {
-                                                int currentPos = holder.getAdapterPosition();
-                                                if (currentPos != RecyclerView.NO_POSITION) {
-                                                    postList.remove(currentPos);
-                                                    notifyItemRemoved(currentPos);
-                                                    Toast.makeText(v.getContext(), "🗑️ Post deleted", Toast.LENGTH_SHORT).show();
-                                                }
-                                            })
-                                            .addOnFailureListener(e -> Toast.makeText(v.getContext(), "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                        return true;
-                    }
-                    return false;
-                });
-                popup.show();
-            });
+        if (holder.ivLikeIcon != null) {
+            if (post.isLikedByCurrentUser()) {
+                holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_filled);
+                holder.ivLikeIcon.clearColorFilter();
+            } else {
+                holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_outline);
+                holder.ivLikeIcon.clearColorFilter();
+            }
         }
 
         if (post.isLikedByCurrentUser() && holder.tvLikeCount != null) {
@@ -375,7 +354,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                 notifyItemChanged(latestPos);
                             }
                             ChatNotificationHelper.notifyPostLiked(v.getContext(), post, uid, getSafeDisplayName(FirebaseAuth.getInstance().getCurrentUser()), "👍");
-                            Toast.makeText(v.getContext(), "👍 Liked post!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(v.getContext(), "Liked post.", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
                             holder.btnLike.setEnabled(true);
@@ -400,7 +379,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.btnRepost.setOnClickListener(v -> {
                 Context ctx = v.getContext();
                 new AlertDialog.Builder(ctx)
-                        .setTitle("🔁 Repost to Feed")
+                        .setTitle("Repost to Feed")
                         .setMessage("Share this post to your profile and campus feed?")
                         .setPositiveButton("Repost", (dialog, which) -> {
                             holder.btnRepost.setEnabled(false);
@@ -411,9 +390,9 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                             Map<String, Object> repostMap = new HashMap<>();
                             repostMap.put("authorName", currentUserName);
                             repostMap.put("authorUid", currentUid);
-                            repostMap.put("postMeta", "Just now • 🔁 Reposted from " + post.getAuthorName());
+                            repostMap.put("postMeta", "Just now • Reposted from " + post.getAuthorName());
                             repostMap.put("content", post.getContent() != null ? post.getContent() : "");
-                            repostMap.put("badgeText", "🔁 Repost");
+                            repostMap.put("badgeText", "Repost");
                             repostMap.put("category", post.getCategory() != null ? post.getCategory() : "General");
                             repostMap.put("isPinned", false);
                             repostMap.put("isAiPick", false);
@@ -433,7 +412,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     .add(repostMap)
                                     .addOnSuccessListener(docRef -> {
                                         holder.btnRepost.setEnabled(true);
-                                        Toast.makeText(ctx, "🔁 Reposted successfully to your feed!", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(ctx, "Reposted successfully to your feed.", Toast.LENGTH_SHORT).show();
                                     })
                                     .addOnFailureListener(e -> {
                                         holder.btnRepost.setEnabled(true);
@@ -445,43 +424,173 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             });
         }
 
-        // Tap Report -> Securely Submit Report directly to Firestore moderation_queue
-        if (holder.btnReportPost != null) {
-            holder.btnReportPost.setOnClickListener(v -> {
-                if (post.getId() == null || post.getId().isEmpty()) return;
-                Context ctx = v.getContext();
-                new AlertDialog.Builder(ctx)
-                        .setTitle("🚩 Report Post")
-                        .setMessage("Submit this post to campus moderators for review?")
-                        .setPositiveButton("Report", (dialog, which) -> {
-                            holder.btnReportPost.setEnabled(false);
-                            String currentUid = uid;
+        // Tap Send / Share -> Direct Options for Messenger, Instagram, Telegram, TikTok, More
+        if (holder.btnSendPost != null) {
+            holder.btnSendPost.setOnClickListener(v -> showSendOptionsDialog(v.getContext(), post));
+        }
+    }
 
-                            Map<String, Object> flagData = new HashMap<>();
-                            flagData.put("postId", post.getId());
-                            flagData.put("content", post.getContent() != null ? post.getContent() : "");
-                            flagData.put("authorName", post.getAuthorName() != null ? post.getAuthorName() : "");
-                            flagData.put("reportedByUid", currentUid);
-                            flagData.put("reason", "Reported by User");
-                            flagData.put("aiScore", "User Flag");
-                            flagData.put("moderationStatus", "PENDING");
-                            flagData.put("timestamp", System.currentTimeMillis());
+    private String formatMetricCount(int count) {
+        if (count <= 0) return "0";
+        if (count >= 1000000) {
+            return String.format(java.util.Locale.US, "%.1fM", count / 1000000.0).replace(".0M", "M");
+        } else if (count >= 10000) {
+            return String.format(java.util.Locale.US, "%.1fK", count / 1000.0).replace(".0K", "K");
+        } else if (count >= 1000) {
+            return String.format(java.util.Locale.US, "%,d", count);
+        }
+        return String.valueOf(count);
+    }
 
-                            FirebaseFirestore.getInstance().collection("moderation_queue")
-                                    .add(flagData)
-                                    .addOnSuccessListener(docRef -> {
-                                        holder.btnReportPost.setEnabled(true);
-                                        Toast.makeText(ctx, "🚩 Report submitted to Moderation Queue!", Toast.LENGTH_SHORT).show();
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        holder.btnReportPost.setEnabled(true);
-                                        Toast.makeText(ctx, "❌ Failed to submit report: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                    });
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
+    private void showSendOptionsDialog(Context context, Post post) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_share_post_options, null);
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        View btnMessenger = dialogView.findViewById(R.id.btnShareMessenger);
+        View btnInstagram = dialogView.findViewById(R.id.btnShareInstagram);
+        View btnTelegram = dialogView.findViewById(R.id.btnShareTelegram);
+        View btnTikTok = dialogView.findViewById(R.id.btnShareTikTok);
+        View btnMore = dialogView.findViewById(R.id.btnShareMore);
+        View btnCancel = dialogView.findViewById(R.id.btnCancelShare);
+
+        if (btnMessenger != null) {
+            btnMessenger.setOnClickListener(v -> {
+                dialog.dismiss();
+                shareToApp(context, post, "com.facebook.orca", "Messenger");
             });
         }
+
+        if (btnInstagram != null) {
+            btnInstagram.setOnClickListener(v -> {
+                dialog.dismiss();
+                shareToApp(context, post, "com.instagram.android", "Instagram");
+            });
+        }
+
+        if (btnTelegram != null) {
+            btnTelegram.setOnClickListener(v -> {
+                dialog.dismiss();
+                shareToApp(context, post, "org.telegram.messenger", "Telegram");
+            });
+        }
+
+        if (btnTikTok != null) {
+            btnTikTok.setOnClickListener(v -> {
+                dialog.dismiss();
+                shareToApp(context, post, "com.zhiliaoapp.musically", "TikTok");
+            });
+        }
+
+        if (btnMore != null) {
+            btnMore.setOnClickListener(v -> {
+                dialog.dismiss();
+                shareToApp(context, post, null, "More Apps");
+            });
+        }
+
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
+    }
+
+    private void shareToApp(Context context, Post post, String targetPackage, String appName) {
+        try {
+            String shareBody = "";
+            if (post != null) {
+                String author = (post.getAuthorName() != null && !post.getAuthorName().isEmpty()) ? post.getAuthorName() : "Campus Student";
+                String content = (post.getContent() != null && !post.getContent().isEmpty()) ? post.getContent() : "";
+                shareBody = "Shared from TCA Campus App:\n\n" + author + ": \"" + content + "\"";
+                if (post.getPhotoUri() != null && !post.getPhotoUri().isEmpty()) {
+                    shareBody += "\n" + post.getPhotoUri();
+                } else if (post.getMediaUris() != null && !post.getMediaUris().isEmpty()) {
+                    shareBody += "\n" + post.getMediaUris().get(0);
+                }
+            }
+
+            android.content.Intent sendIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+            sendIntent.setType("text/plain");
+            sendIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "TCA Campus Post");
+            sendIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
+
+            if (targetPackage != null) {
+                sendIntent.setPackage(targetPackage);
+                try {
+                    context.startActivity(sendIntent);
+                    return;
+                } catch (android.content.ActivityNotFoundException e) {
+                    Toast.makeText(context, appName + " is not installed. Opening chooser...", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            // Fallback / More apps
+            android.content.Intent chooser = android.content.Intent.createChooser(sendIntent, "Send Post via");
+            context.startActivity(chooser);
+        } catch (Exception ex) {
+            Toast.makeText(context, "Unable to share: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showReportPostDialog(Context ctx, Post post) {
+        if (ctx == null || post == null || post.getId() == null || post.getId().isEmpty()) return;
+
+        View dialogView = LayoutInflater.from(ctx).inflate(R.layout.dialog_report_post, null);
+        AlertDialog dialog = new AlertDialog.Builder(ctx)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        android.widget.RadioGroup rgReportReasons = dialogView.findViewById(R.id.rgReportReasons);
+        android.widget.EditText etReportNotes = dialogView.findViewById(R.id.etReportNotes);
+        android.widget.Button btnCancelReport = dialogView.findViewById(R.id.btnCancelReport);
+        android.widget.Button btnSubmitReport = dialogView.findViewById(R.id.btnSubmitReport);
+
+        btnCancelReport.setOnClickListener(view -> dialog.dismiss());
+
+        btnSubmitReport.setOnClickListener(view -> {
+            int selectedRadioId = rgReportReasons.getCheckedRadioButtonId();
+            android.widget.RadioButton selectedRb = dialogView.findViewById(selectedRadioId);
+            String chosenReason = selectedRb != null ? selectedRb.getText().toString() : "Other campus guideline violation";
+            String optionalNotes = etReportNotes != null ? etReportNotes.getText().toString().trim() : "";
+
+            dialog.dismiss();
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            String currentUid = (currentUser != null && currentUser.getUid() != null) ? currentUser.getUid() : "guest_user";
+
+            Map<String, Object> flagData = new HashMap<>();
+            flagData.put("postId", post.getId());
+            flagData.put("content", post.getContent() != null ? post.getContent() : "");
+            flagData.put("authorName", post.getAuthorName() != null ? post.getAuthorName() : "");
+            flagData.put("reportedByUid", currentUid);
+            flagData.put("reason", chosenReason);
+            if (!optionalNotes.isEmpty()) {
+                flagData.put("notes", optionalNotes);
+            }
+            flagData.put("aiScore", "User Flag: " + chosenReason);
+            flagData.put("moderationStatus", "PENDING");
+            flagData.put("timestamp", System.currentTimeMillis());
+
+            FirebaseFirestore.getInstance().collection("moderation_queue")
+                    .add(flagData)
+                    .addOnSuccessListener(docRef -> {
+                        Toast.makeText(ctx, "Thank you. Your report has been submitted for moderation review.", Toast.LENGTH_LONG).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(ctx, "Unable to submit report. Please check your connection and try again.", Toast.LENGTH_SHORT).show();
+                    });
+        });
+
+        dialog.show();
     }
 
     private void showReactionPicker(Context context, Post post, PostViewHolder holder) {
@@ -493,6 +602,19 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            dialog.getWindow().setDimAmount(0.25f);
+        }
+
+        View container = dialogView.findViewById(R.id.reactionsContainer);
+        if (container != null) {
+            container.setScaleX(0.75f);
+            container.setScaleY(0.75f);
+            container.setAlpha(0f);
+            container.animate()
+                    .scaleX(1f).scaleY(1f).alpha(1f)
+                    .setDuration(220)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.3f))
+                    .start();
         }
 
         TextView tvReactLike = dialogView.findViewById(R.id.tvReactLike);
@@ -500,35 +622,92 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         TextView tvReactCare = dialogView.findViewById(R.id.tvReactCare);
         TextView tvReactHaha = dialogView.findViewById(R.id.tvReactHaha);
         TextView tvReactWow = dialogView.findViewById(R.id.tvReactWow);
+        TextView tvReactSad = dialogView.findViewById(R.id.tvReactSad);
         TextView tvReactAngry = dialogView.findViewById(R.id.tvReactAngry);
 
-        // Animate the emojis popping in one by one
-        TextView[] emojis = {tvReactLike, tvReactHeart, tvReactCare, tvReactHaha, tvReactWow, tvReactAngry};
+        final java.util.List<android.animation.Animator> activeAnimators = new java.util.ArrayList<>();
+        TextView[] emojis = {tvReactLike, tvReactHeart, tvReactCare, tvReactHaha, tvReactWow, tvReactSad, tvReactAngry};
+
+        // Staggered pop-in + continuous alive bobbing & breathing pulse ("mag lihok2")
         for (int i = 0; i < emojis.length; i++) {
-            if (emojis[i] != null) {
-                emojis[i].setScaleX(0f);
-                emojis[i].setScaleY(0f);
-                emojis[i].animate()
-                        .scaleX(1f).scaleY(1f)
-                        .setDuration(250)
-                        .setStartDelay(i * 30)
-                        .setInterpolator(new android.view.animation.OvershootInterpolator())
-                        .start();
-            }
+            final TextView emojiView = emojis[i];
+            if (emojiView == null) continue;
+            final int index = i;
+
+            emojiView.setScaleX(0f);
+            emojiView.setScaleY(0f);
+            emojiView.setTranslationY(24f);
+
+            emojiView.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .translationY(0f)
+                    .setDuration(260)
+                    .setStartDelay(index * 35)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(2.2f))
+                    .withEndAction(() -> {
+                        // 1. Continuous Bobbing Float Animation (lihok-lihok)
+                        android.animation.ObjectAnimator bob = android.animation.ObjectAnimator.ofFloat(emojiView, "translationY", 0f, -6f, 0f);
+                        bob.setDuration(950 + (index % 3) * 150);
+                        bob.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                        bob.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                        bob.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+                        bob.setStartDelay((index * 80) % 360);
+                        bob.start();
+                        activeAnimators.add(bob);
+
+                        // 2. Continuous Subtle Breathing Pulse
+                        android.animation.ObjectAnimator pulseX = android.animation.ObjectAnimator.ofFloat(emojiView, "scaleX", 1f, 1.07f, 1f);
+                        pulseX.setDuration(950 + (index % 3) * 150);
+                        pulseX.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                        pulseX.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                        pulseX.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+                        pulseX.setStartDelay((index * 80) % 360);
+                        pulseX.start();
+                        activeAnimators.add(pulseX);
+
+                        android.animation.ObjectAnimator pulseY = android.animation.ObjectAnimator.ofFloat(emojiView, "scaleY", 1f, 1.07f, 1f);
+                        pulseY.setDuration(950 + (index % 3) * 150);
+                        pulseY.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+                        pulseY.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+                        pulseY.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+                        pulseY.setStartDelay((index * 80) % 360);
+                        pulseY.start();
+                        activeAnimators.add(pulseY);
+                    })
+                    .start();
+
+            // Touch zoom effect
+            emojiView.setOnTouchListener((v, event) -> {
+                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                    v.animate().scaleX(1.45f).scaleY(1.45f).translationY(-12f).setDuration(120).start();
+                } else if (event.getAction() == android.view.MotionEvent.ACTION_UP || event.getAction() == android.view.MotionEvent.ACTION_CANCEL) {
+                    v.animate().scaleX(1f).scaleY(1f).translationY(0f).setDuration(120).start();
+                }
+                return false;
+            });
         }
+
+        dialog.setOnDismissListener(d -> {
+            for (android.animation.Animator a : activeAnimators) {
+                if (a != null) a.cancel();
+            }
+            activeAnimators.clear();
+        });
         View.OnClickListener reactionListener = v -> {
             String emoji = "👍";
             if (v == tvReactHeart) emoji = "❤️";
-            else if (v == tvReactCare) emoji = "🤗";
-            else if (v == tvReactHaha) emoji = "😂";
+            else if (v == tvReactCare) emoji = "🥰";
+            else if (v == tvReactHaha) emoji = "😆";
             else if (v == tvReactWow) emoji = "😮";
+            else if (v == tvReactSad) emoji = "😢";
             else if (v == tvReactAngry) emoji = "😡";
 
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
             String uid = (currentUser != null && currentUser.getUid() != null) ? currentUser.getUid() : "guest_user";
 
             if (post.isLikedByCurrentUser()) {
-                Toast.makeText(context, "⚠️ You have already reacted to this post!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "You have already reacted to this post.", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
                 return;
             }
@@ -578,6 +757,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         if (tvReactCare != null) tvReactCare.setOnClickListener(reactionListener);
         if (tvReactHaha != null) tvReactHaha.setOnClickListener(reactionListener);
         if (tvReactWow != null) tvReactWow.setOnClickListener(reactionListener);
+        if (tvReactSad != null) tvReactSad.setOnClickListener(reactionListener);
         if (tvReactAngry != null) tvReactAngry.setOnClickListener(reactionListener);
 
         dialog.show();
@@ -650,6 +830,40 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                 Long rxCount = cDoc.getLong("reactionCount");
                                 c.setReactionType(rxType != null ? rxType : "");
                                 c.setReactionCount(rxCount != null ? rxCount.intValue() : 0);
+
+                                Map<String, Object> summaryRaw = (Map<String, Object>) cDoc.get("reactionsSummary");
+                                if (summaryRaw != null) {
+                                    Map<String, Long> summary = new HashMap<>();
+                                    for (Map.Entry<String, Object> e : summaryRaw.entrySet()) {
+                                        if (e.getValue() instanceof Number) {
+                                            summary.put(e.getKey(), ((Number) e.getValue()).longValue());
+                                        }
+                                    }
+                                    c.setReactionsSummary(summary);
+                                }
+
+                                Map<String, Object> userRxsRaw = (Map<String, Object>) cDoc.get("userReactions");
+                                if (userRxsRaw != null) {
+                                    Map<String, String> userRxs = new HashMap<>();
+                                    for (Map.Entry<String, Object> e : userRxsRaw.entrySet()) {
+                                        if (e.getValue() != null) {
+                                            userRxs.put(e.getKey(), e.getValue().toString());
+                                        }
+                                    }
+                                    c.setUserReactions(userRxs);
+                                }
+
+                                Map<String, Object> userRxNamesRaw = (Map<String, Object>) cDoc.get("userReactionNames");
+                                if (userRxNamesRaw != null) {
+                                    Map<String, String> userRxNames = new HashMap<>();
+                                    for (Map.Entry<String, Object> e : userRxNamesRaw.entrySet()) {
+                                        if (e.getValue() != null) {
+                                            userRxNames.put(e.getKey(), e.getValue().toString());
+                                        }
+                                    }
+                                    c.setUserReactionNames(userRxNames);
+                                }
+
                                 commentList.add(c);
                             }
                             commentAdapter.notifyDataSetChanged();
@@ -695,7 +909,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     etCommentText.setText("");
                                     replyingToCommentId[0] = null;
                                     etCommentText.setHint("Write a comment...");
-                                    Toast.makeText(context, "💬 Reply posted!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Reply posted.", Toast.LENGTH_SHORT).show();
                                 })
                                 .addOnFailureListener(e -> {
                                     btnSendComment.setEnabled(true);
@@ -715,7 +929,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                                 btnSendComment.setEnabled(true);
                                                 etCommentText.setText("");
                                                 ChatNotificationHelper.notifyCommentAdded(context, post, u != null ? u.getUid() : "", authorName, commentStr);
-                                                Toast.makeText(context, "💬 Comment posted!", Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(context, "Comment posted.", Toast.LENGTH_SHORT).show();
                                             });
                                 })
                                 .addOnFailureListener(e -> {
@@ -765,9 +979,255 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         }
     }
 
+
+    private void showProfessionalPostOptions(Context context, Post post, PostViewHolder holder) {
+        if (context == null || post == null) return;
+
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
+        View sheetView = LayoutInflater.from(context).inflate(R.layout.layout_bottom_sheet_post_options, null);
+        bottomSheetDialog.setContentView(sheetView);
+
+        TextView tvSheetPostCategory = sheetView.findViewById(R.id.tvSheetPostCategory);
+        TextView tvSheetPostPreview = sheetView.findViewById(R.id.tvSheetPostPreview);
+
+        if (tvSheetPostCategory != null) {
+            String cat = post.getCategory();
+            tvSheetPostCategory.setText(cat != null && !cat.isEmpty() ? cat : "Post");
+        }
+
+        if (tvSheetPostPreview != null) {
+            String content = post.getContent();
+            tvSheetPostPreview.setText(content != null && !content.trim().isEmpty() ? content.trim() : "No text caption");
+        }
+
+        View layoutOptionDownload = sheetView.findViewById(R.id.layoutOptionDownload);
+        View layoutOptionCopy = sheetView.findViewById(R.id.layoutOptionCopy);
+        View layoutAdminSection = sheetView.findViewById(R.id.layoutAdminSection);
+        View layoutOptionEdit = sheetView.findViewById(R.id.layoutOptionEdit);
+        View layoutOptionPin = sheetView.findViewById(R.id.layoutOptionPin);
+        TextView tvOptionPinTitle = sheetView.findViewById(R.id.tvOptionPinTitle);
+        TextView tvOptionPinSubtitle = sheetView.findViewById(R.id.tvOptionPinSubtitle);
+        ImageView ivOptionPinIcon = sheetView.findViewById(R.id.ivOptionPinIcon);
+        View layoutOptionArchive = sheetView.findViewById(R.id.layoutOptionArchive);
+        View layoutOptionDelete = sheetView.findViewById(R.id.layoutOptionDelete);
+
+        if (layoutAdminSection != null) {
+            layoutAdminSection.setVisibility(this.isAdmin ? View.VISIBLE : View.GONE);
+        }
+
+        if (tvOptionPinTitle != null) {
+            if (post.isPinned()) {
+                tvOptionPinTitle.setText("Unpin Post");
+                if (tvOptionPinSubtitle != null) tvOptionPinSubtitle.setText("Remove pinned badge and unpin from top");
+            } else {
+                tvOptionPinTitle.setText("Pin Post");
+                if (tvOptionPinSubtitle != null) tvOptionPinSubtitle.setText("Keep post highlighted at the top of the feed");
+            }
+        }
+
+        // 1. Download Media
+        if (layoutOptionDownload != null) {
+            layoutOptionDownload.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                MediaDownloadHelper.downloadPostMedia(context, post);
+            });
+        }
+
+        // 2. Copy Text
+        if (layoutOptionCopy != null) {
+            layoutOptionCopy.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                String textContent = post.getContent();
+                if (textContent != null && !textContent.isEmpty()) {
+                    android.content.ClipboardManager cb = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (cb != null) {
+                        cb.setPrimaryClip(android.content.ClipData.newPlainText("Post Content", textContent));
+                        Toast.makeText(context, "Post text copied to clipboard.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        // 3. Report Post (Available to all users)
+        View layoutOptionReport = sheetView.findViewById(R.id.layoutOptionReport);
+        if (layoutOptionReport != null) {
+            layoutOptionReport.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                showReportPostDialog(context, post);
+            });
+        }
+
+        // 3. Edit (Admin)
+        if (layoutOptionEdit != null) {
+            layoutOptionEdit.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                showEditPostDialog(context, post, holder);
+            });
+        }
+
+        // 4. Pin / Unpin (Admin)
+        if (layoutOptionPin != null) {
+            layoutOptionPin.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                if (post.getId() == null || post.getId().isEmpty()) return;
+                boolean newPinnedStatus = !post.isPinned();
+                FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                        .update("isPinned", newPinnedStatus)
+                        .addOnSuccessListener(aVoid -> {
+                            post.setPinned(newPinnedStatus);
+                            int currentPos = holder.getAdapterPosition();
+                            if (currentPos != RecyclerView.NO_POSITION) {
+                                notifyItemChanged(currentPos);
+                            }
+                            Toast.makeText(context, newPinnedStatus ? "Post pinned to top." : "Post unpinned.", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> Toast.makeText(context, "Error updating pin: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            });
+        }
+
+        // 5. Archive (Admin)
+        if (layoutOptionArchive != null) {
+            layoutOptionArchive.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                showConfirmActionDialog(context, "Archive Post", "Hide from student feed?",
+                        "This post will be hidden from the campus feed. It will not be deleted, but students will no longer see it.",
+                        "Confirm Archive", R.drawable.ic_archive, "#475569", R.drawable.bg_icon_circle_slate, () -> {
+                            if (post.getId() == null || post.getId().isEmpty()) return;
+                            FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                                    .update("moderationStatus", "ARCHIVED")
+                                    .addOnSuccessListener(aVoid -> {
+                                        int currentPos = holder.getAdapterPosition();
+                                        if (currentPos != RecyclerView.NO_POSITION && currentPos < postList.size()) {
+                                            postList.remove(currentPos);
+                                            notifyItemRemoved(currentPos);
+                                        }
+                                        Toast.makeText(context, "Post archived successfully.", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .addOnFailureListener(e -> Toast.makeText(context, "Failed to archive: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        });
+            });
+        }
+
+        // 6. Delete (Admin)
+        if (layoutOptionDelete != null) {
+            layoutOptionDelete.setOnClickListener(v -> {
+                bottomSheetDialog.dismiss();
+                showConfirmActionDialog(context, "Delete Post", "Permanently remove from campus hub?",
+                        "Are you sure you want to permanently delete this post? This action is irreversible.",
+                        "Confirm Delete", R.drawable.ic_delete, "#D32F2F", R.drawable.bg_icon_circle_red, () -> {
+                            if (post.getId() == null || post.getId().isEmpty()) return;
+                            FirebaseFirestore.getInstance().collection("posts").document(post.getId()).delete()
+                                    .addOnSuccessListener(aVoid -> {
+                                        int currentPos = holder.getAdapterPosition();
+                                        if (currentPos != RecyclerView.NO_POSITION && currentPos < postList.size()) {
+                                            postList.remove(currentPos);
+                                            notifyItemRemoved(currentPos);
+                                        }
+                                        Toast.makeText(context, "Post permanently deleted.", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .addOnFailureListener(e -> Toast.makeText(context, "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        });
+            });
+        }
+
+        bottomSheetDialog.show();
+    }
+
+    private void showEditPostDialog(Context context, Post post, PostViewHolder holder) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_edit_post, null);
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        EditText etEditPostContent = dialogView.findViewById(R.id.etEditPostContent);
+        if (etEditPostContent != null) {
+            etEditPostContent.setText(post.getContent());
+            etEditPostContent.setSelection(etEditPostContent.getText().length());
+        }
+
+        dialogView.findViewById(R.id.btnCancelEdit).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.btnSaveEdit).setOnClickListener(v -> {
+            String newText = etEditPostContent.getText().toString().trim();
+            if (newText.isEmpty()) {
+                Toast.makeText(context, "Post content cannot be empty.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (post.getId() == null || post.getId().isEmpty()) return;
+
+            FirebaseFirestore.getInstance().collection("posts").document(post.getId())
+                    .update("content", newText)
+                    .addOnSuccessListener(aVoid -> {
+                        post.setContent(newText);
+                        int currentPos = holder.getAdapterPosition();
+                        if (currentPos != RecyclerView.NO_POSITION) {
+                            notifyItemChanged(currentPos);
+                        }
+                        dialog.dismiss();
+                        Toast.makeText(context, "Post updated successfully.", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(context, "Failed to update: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        });
+
+        dialog.show();
+    }
+
+    private void showConfirmActionDialog(Context context, String title, String subtitle, String message,
+                                         String confirmBtnText, int iconRes, String tintColorHex,
+                                         int frameBgRes, Runnable onConfirm) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_confirm_post_action, null);
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        TextView tvTitle = dialogView.findViewById(R.id.tvConfirmTitle);
+        TextView tvSubtitle = dialogView.findViewById(R.id.tvConfirmSubtitle);
+        TextView tvMessage = dialogView.findViewById(R.id.tvConfirmMessage);
+        ImageView ivIcon = dialogView.findViewById(R.id.ivConfirmIcon);
+        FrameLayout layoutFrame = dialogView.findViewById(R.id.layoutConfirmIconFrame);
+        androidx.appcompat.widget.AppCompatButton btnConfirm = dialogView.findViewById(R.id.btnConfirmAction);
+
+        if (tvTitle != null) tvTitle.setText(title);
+        if (tvSubtitle != null) tvSubtitle.setText(subtitle);
+        if (tvMessage != null) tvMessage.setText(message);
+        if (ivIcon != null) {
+            ivIcon.setImageResource(iconRes);
+            ivIcon.setColorFilter(Color.parseColor(tintColorHex));
+        }
+        if (layoutFrame != null) {
+            layoutFrame.setBackgroundResource(frameBgRes);
+        }
+        if (btnConfirm != null) {
+            btnConfirm.setText(confirmBtnText);
+            if ("Confirm Archive".equals(confirmBtnText)) {
+                btnConfirm.setBackgroundResource(R.drawable.bg_purple_button);
+            }
+        }
+
+        dialogView.findViewById(R.id.btnCancelAction).setOnClickListener(v -> dialog.dismiss());
+        if (btnConfirm != null) {
+            btnConfirm.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onConfirm != null) onConfirm.run();
+            });
+        }
+
+        dialog.show();
+    }
+
     static class PostViewHolder extends RecyclerView.ViewHolder {
-        TextView tvAuthorName, tvPostMeta, tvPostContent, tvBadgeText, tvLikeIcon, tvLikeCount, tvCommentLabel;
-        LinearLayout layoutBadge, btnLike, btnComment, btnRepost, btnReportPost;
+        TextView tvAuthorName, tvPostMeta, tvPostContent, tvSeeMore, tvBadgeText, tvLikeIcon, tvLikeCount, tvCommentLabel;
+        LinearLayout layoutBadge, btnLike, btnComment, btnRepost, btnSendPost;
+        ImageView ivLikeIcon, ivCommentIcon, ivRepostIcon, ivSendIcon;
         android.widget.RelativeLayout layoutMediaContainer;
         FrameLayout layoutSingleVideo;
         VideoView vvSingleVideo;
@@ -785,13 +1245,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         View collage_5_overlay;
         android.widget.TextView collage_5_more_text;
         ImageView btnMoreOptions;
-        View btnDownloadPost;
 
         public PostViewHolder(@androidx.annotation.NonNull View itemView) {
             super(itemView);
             tvAuthorName = itemView.findViewById(R.id.tvAuthorName);
             tvPostMeta = itemView.findViewById(R.id.tvPostMeta);
             tvPostContent = itemView.findViewById(R.id.tvPostContent);
+            tvSeeMore = itemView.findViewById(R.id.tvSeeMore);
             tvBadgeText = itemView.findViewById(R.id.tvBadgeText);
             tvLikeIcon = itemView.findViewById(R.id.tvLikeIcon);
             tvLikeCount = itemView.findViewById(R.id.tvLikeCount);
@@ -800,8 +1260,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             btnLike = itemView.findViewById(R.id.btnLike);
             btnComment = itemView.findViewById(R.id.btnComment);
             btnRepost = itemView.findViewById(R.id.btnRepost);
-            btnReportPost = itemView.findViewById(R.id.btnReportPost);
-            btnDownloadPost = itemView.findViewById(R.id.btnDownloadPost);
+            btnSendPost = itemView.findViewById(R.id.btnSendPost);
+            ivLikeIcon = itemView.findViewById(R.id.ivLikeIcon);
+            ivCommentIcon = itemView.findViewById(R.id.ivCommentIcon);
+            ivRepostIcon = itemView.findViewById(R.id.ivRepostIcon);
+            ivSendIcon = itemView.findViewById(R.id.ivSendIcon);
             layoutMediaContainer = itemView.findViewById(R.id.layoutMediaContainer);
             
             layoutSingleVideo = itemView.findViewById(R.id.layoutSingleVideo);

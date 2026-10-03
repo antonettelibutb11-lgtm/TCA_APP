@@ -23,7 +23,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-bold"
-                android:text="🗳️ Cast Your Official Vote"
+                android:text="Cast Your Official Vote"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -110,7 +110,7 @@
                 android:layout_marginStart="10dp"
                 android:layout_weight="1.3"
                 android:background="@drawable/bg_purple_button"
-                android:text="Submit My Vote ✓"
+                android:text="Submit Ballot"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"

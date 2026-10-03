@@ -50,9 +50,10 @@
             android:layout_weight="1"
             android:background="@drawable/bg_purple_button"
             android:fontFamily="sans-serif-bold"
-            android:text="✅ Approve"
+            android:text="Approve"
+            android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="12.5sp" />
 
         <Button
             android:id="@+id/btnRejectMember"
@@ -62,9 +63,10 @@
             android:layout_weight="1"
             android:background="@drawable/bg_pill_red_solid"
             android:fontFamily="sans-serif-bold"
-            android:text="❌ Reject"
+            android:text="Decline"
+            android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="12sp" />
+            android:textSize="12.5sp" />
 
     </LinearLayout>
 </LinearLayout>

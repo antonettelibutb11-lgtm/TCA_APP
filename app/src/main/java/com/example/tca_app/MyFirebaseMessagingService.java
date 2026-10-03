@@ -40,7 +40,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
-        String title = "📢 Campus Access Notification";
+        String title = "The Campus Access";
         String body = "New update available!";
 
         if (remoteMessage.getNotification() != null) {

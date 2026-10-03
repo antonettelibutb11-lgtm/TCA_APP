@@ -211,38 +211,33 @@ public class AdminDashboardFragment extends Fragment {
         if (db == null) return;
         com.google.firebase.firestore.WriteBatch batch = db.batch();
 
-        if ("ARCHIVE".equals(action)) {
-            if (moderationId != null && !moderationId.isEmpty()) {
-                batch.update(db.collection("moderation_queue").document(moderationId), "moderationStatus", "ARCHIVED");
-            }
-            if (postId != null && !postId.isEmpty()) {
-                batch.update(db.collection("posts").document(postId), "moderationStatus", "ARCHIVED");
-            }
-        } else if ("DELETE".equals(action)) {
-            if (moderationId != null && !moderationId.isEmpty()) {
-                batch.update(db.collection("moderation_queue").document(moderationId), "moderationStatus", "DELETED");
-            }
-            if (postId != null && !postId.isEmpty()) {
+        if (moderationId != null && !moderationId.isEmpty()) {
+            batch.delete(db.collection("moderation_queue").document(moderationId));
+        }
+
+        if (postId != null && !postId.isEmpty()) {
+            Map<String, Object> updates = new HashMap<>();
+            if ("ARCHIVE".equals(action)) {
+                updates.put("moderationStatus", "ARCHIVED");
+                updates.put("status", "ARCHIVED");
+                batch.set(db.collection("posts").document(postId), updates, com.google.firebase.firestore.SetOptions.merge());
+            } else if ("DELETE".equals(action)) {
                 batch.delete(db.collection("posts").document(postId));
-            }
-        } else if ("WARN".equals(action)) {
-            if (moderationId != null && !moderationId.isEmpty()) {
-                batch.update(db.collection("moderation_queue").document(moderationId), "moderationStatus", "WARNED");
-            }
-            if (postId != null && !postId.isEmpty()) {
-                batch.update(db.collection("posts").document(postId), "moderationStatus", "WARNED");
-            }
-            Map<String, Object> notif = new HashMap<>();
-            notif.put("title", "⚠️ Admin Moderation Warning");
-            notif.put("message", "Your post was flagged for community violation.");
-            notif.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
-            batch.set(db.collection("notifications").document(), notif);
-        } else if ("APPROVE".equals(action)) {
-            if (moderationId != null && !moderationId.isEmpty()) {
-                batch.update(db.collection("moderation_queue").document(moderationId), "moderationStatus", "APPROVED");
-            }
-            if (postId != null && !postId.isEmpty()) {
-                batch.update(db.collection("posts").document(postId), "moderationStatus", "APPROVED");
+            } else if ("WARN".equals(action)) {
+                updates.put("moderationStatus", "FLAGGED");
+                updates.put("status", "FLAGGED");
+                batch.set(db.collection("posts").document(postId), updates, com.google.firebase.firestore.SetOptions.merge());
+
+                Map<String, Object> notif = new HashMap<>();
+                notif.put("title", "⚠️ Admin Moderation Warning");
+                notif.put("message", "Your post was flagged for community guidelines review.");
+                notif.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+                batch.set(db.collection("notifications").document(), notif);
+            } else if ("APPROVE".equals(action)) {
+                updates.put("moderationStatus", "APPROVED");
+                updates.put("status", "APPROVED");
+                updates.put("isDuplicate", false);
+                batch.set(db.collection("posts").document(postId), updates, com.google.firebase.firestore.SetOptions.merge());
             }
         }
 
@@ -386,7 +381,9 @@ public class AdminDashboardFragment extends Fragment {
                         for (DocumentSnapshot doc : snapshots.getDocuments()) {
                             if (doc == null) continue;
                             String status = doc.getString("moderationStatus");
-                            if ("DELETED".equals(status) || "ARCHIVED".equals(status)) {
+                            String genStatus = doc.getString("status");
+                            if ("DELETED".equals(status) || "ARCHIVED".equals(status) || "APPROVED".equals(status)
+                                    || "RESOLVED".equals(status) || "WARNED".equals(status) || "RESOLVED".equals(genStatus)) {
                                 continue;
                             }
                             String reason = doc.getString("reason");

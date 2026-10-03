@@ -2,6 +2,7 @@ package com.example.tca_app;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -30,6 +31,12 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 
+import android.app.AlertDialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.LayoutInflater;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -53,6 +60,15 @@ public class MessageActivity extends AppCompatActivity {
     private TextView tvChatRecipientName;
     private TextView tvChatRecipientStatus;
     private ImageView imgChatUserAvatar;
+
+    private LinearLayout layoutChatBlockedBanner;
+    private TextView tvChatBlockedMessage;
+    private TextView btnChatUnblock;
+    private View layoutChatInputBar;
+    private ImageView btnChatMoreOptions;
+
+    private boolean isConversationArchived = false;
+    private boolean isConversationBlocked = false;
 
     private String recipientUid = "campus_admin_desk";
     private String recipientName = "The Campus Access";
@@ -118,8 +134,18 @@ public class MessageActivity extends AppCompatActivity {
         View btnAttachGallery = findViewById(R.id.btnAttachGallery);
         View btnAttachFile = findViewById(R.id.btnAttachFile);
 
+        layoutChatBlockedBanner = findViewById(R.id.layoutChatBlockedBanner);
+        tvChatBlockedMessage = findViewById(R.id.tvChatBlockedMessage);
+        btnChatUnblock = findViewById(R.id.btnChatUnblock);
+        layoutChatInputBar = findViewById(R.id.layoutChatInputBar);
+        btnChatMoreOptions = findViewById(R.id.btnChatMoreOptions);
+
         if (btnBackChat != null) {
             btnBackChat.setOnClickListener(v -> finish());
+        }
+
+        if (btnChatMoreOptions != null) {
+            btnChatMoreOptions.setOnClickListener(v -> showConversationActionsDialog());
         }
 
         // Configure role & header display
@@ -159,6 +185,17 @@ public class MessageActivity extends AppCompatActivity {
         messageList = new ArrayList<>();
         adapter = new ChatMessageAdapter(messageList, currentUid);
         adapter.setCurrentUserAdmin(isAdminReply);
+        adapter.setOnMessageActionListener(new ChatMessageAdapter.OnMessageActionListener() {
+            @Override
+            public void onEditMessage(ChatMessage message, int position) {
+                showEditMessageDialog(message);
+            }
+
+            @Override
+            public void onUnsendMessage(ChatMessage message, int position) {
+                showUnsendMessageDialog(message);
+            }
+        });
         rvChatMessages.setAdapter(adapter);
 
         if (btnSendMessage != null) {
@@ -448,14 +485,33 @@ public class MessageActivity extends AppCompatActivity {
         }
     }
 
+    private com.google.firebase.firestore.ListenerRegistration chatDocListenerRegistration;
+    private com.google.firebase.firestore.ListenerRegistration chatListenerRegistration;
+
     private void fetchChatMetadataAndListen() {
         if (chatId == null || chatId.trim().isEmpty()) {
             listenToChatMessages();
             return;
         }
 
-        db.collection("chats").document(chatId).get().addOnSuccessListener(doc -> {
+        if (chatDocListenerRegistration != null) {
+            chatDocListenerRegistration.remove();
+        }
+
+        chatDocListenerRegistration = db.collection("chats").document(chatId).addSnapshotListener((doc, error) -> {
+            if (isFinishing() || isDestroyed()) return;
+            if (error != null) {
+                android.util.Log.e("MessageActivity", "Chat doc snapshot error: " + error.getMessage());
+                return;
+            }
+
             if (doc != null && doc.exists()) {
+                Boolean blocked = doc.getBoolean("isBlocked");
+                isConversationBlocked = Boolean.TRUE.equals(blocked);
+
+                Boolean archived = doc.getBoolean("isArchived");
+                isConversationArchived = Boolean.TRUE.equals(archived);
+
                 String sUid = doc.getString("studentUid");
                 String sName = doc.getString("studentName");
                 String sEmail = doc.getString("studentEmail");
@@ -471,12 +527,31 @@ public class MessageActivity extends AppCompatActivity {
                 } else {
                     if (aUid != null && !aUid.isEmpty()) recipientUid = aUid;
                 }
-            }
-            listenToChatMessages();
-        }).addOnFailureListener(e -> listenToChatMessages());
-    }
 
-    private com.google.firebase.firestore.ListenerRegistration chatListenerRegistration;
+                // Apply blocked conversation status
+                if (isConversationBlocked) {
+                    if (layoutChatBlockedBanner != null) layoutChatBlockedBanner.setVisibility(View.VISIBLE);
+                    if (isUserAdmin) {
+                        if (tvChatBlockedMessage != null) tvChatBlockedMessage.setText("You have blocked this student conversation.");
+                        if (btnChatUnblock != null) {
+                            btnChatUnblock.setVisibility(View.VISIBLE);
+                            btnChatUnblock.setOnClickListener(v -> toggleBlockConversation(false));
+                        }
+                        if (layoutChatInputBar != null) layoutChatInputBar.setVisibility(View.VISIBLE);
+                    } else {
+                        if (tvChatBlockedMessage != null) tvChatBlockedMessage.setText("You cannot reply to this conversation as it is currently blocked.");
+                        if (btnChatUnblock != null) btnChatUnblock.setVisibility(View.GONE);
+                        if (layoutChatInputBar != null) layoutChatInputBar.setVisibility(View.GONE);
+                    }
+                } else {
+                    if (layoutChatBlockedBanner != null) layoutChatBlockedBanner.setVisibility(View.GONE);
+                    if (layoutChatInputBar != null) layoutChatInputBar.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        listenToChatMessages();
+    }
 
     private void listenToChatMessages() {
         if (chatId == null || chatId.trim().isEmpty()) {
@@ -506,6 +581,9 @@ public class MessageActivity extends AppCompatActivity {
                             String imageUrl = doc.getString("imageUrl");
                             String messageType = doc.getString("messageType");
                             String senderRole = doc.getString("senderRole");
+                            Boolean isEdited = doc.getBoolean("isEdited");
+                            Boolean isUnsent = doc.getBoolean("isUnsent");
+                            Long editedAt = doc.getLong("editedAt");
 
                             long timestamp = System.currentTimeMillis();
                             Object tsObj = doc.get("timestamp");
@@ -525,6 +603,10 @@ public class MessageActivity extends AppCompatActivity {
                                     messageType != null ? messageType : "TEXT",
                                     timestamp
                             );
+                            msg.setMessageId(doc.getId());
+                            if (isEdited != null) msg.setEdited(isEdited);
+                            if (isUnsent != null) msg.setUnsent(isUnsent);
+                            if (editedAt != null) msg.setEditedAt(editedAt);
                             if (senderRole != null) {
                                 msg.setSenderRole(senderRole);
                             }
@@ -543,6 +625,294 @@ public class MessageActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void showEditMessageDialog(ChatMessage msg) {
+        if (msg == null || msg.getMessageId().isEmpty()) return;
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_chat_message, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        EditText etEditMessageText = dialogView.findViewById(R.id.etEditMessageText);
+        Button btnCancelEditMessage = dialogView.findViewById(R.id.btnCancelEditMessage);
+        Button btnSaveEditMessage = dialogView.findViewById(R.id.btnSaveEditMessage);
+
+        if (etEditMessageText != null) {
+            etEditMessageText.setText(msg.getText());
+            if (msg.getText() != null) {
+                etEditMessageText.setSelection(msg.getText().length());
+            }
+        }
+
+        if (btnCancelEditMessage != null) {
+            btnCancelEditMessage.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        if (btnSaveEditMessage != null) {
+            btnSaveEditMessage.setOnClickListener(v -> {
+                String newText = etEditMessageText != null ? etEditMessageText.getText().toString().trim() : "";
+                if (newText.isEmpty()) {
+                    Toast.makeText(this, "Message cannot be empty.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (newText.equals(msg.getText())) {
+                    dialog.dismiss();
+                    return;
+                }
+
+                dialog.dismiss();
+                long now = System.currentTimeMillis();
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("text", newText);
+                updates.put("isEdited", true);
+                updates.put("editedAt", now);
+
+                db.collection("chats")
+                        .document(chatId)
+                        .collection("messages")
+                        .document(msg.getMessageId())
+                        .update(updates)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Message edited.", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to edit message: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+
+                // If this is the latest message, update the parent chat preview
+                if (!messageList.isEmpty() && messageList.get(messageList.size() - 1).getMessageId().equals(msg.getMessageId())) {
+                    db.collection("chats").document(chatId).update(
+                            "lastMessage", newText,
+                            "updatedAt", FieldValue.serverTimestamp()
+                    );
+                }
+            });
+        }
+
+        dialog.show();
+    }
+
+    private void showUnsendMessageDialog(ChatMessage msg) {
+        if (msg == null || msg.getMessageId().isEmpty()) return;
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_unsend_chat_message, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        Button btnCancelUnsend = dialogView.findViewById(R.id.btnCancelUnsend);
+        Button btnConfirmUnsend = dialogView.findViewById(R.id.btnConfirmUnsend);
+
+        if (btnCancelUnsend != null) {
+            btnCancelUnsend.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        if (btnConfirmUnsend != null) {
+            btnConfirmUnsend.setOnClickListener(v -> {
+                dialog.dismiss();
+                long now = System.currentTimeMillis();
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("isUnsent", true);
+                updates.put("text", "");
+                updates.put("imageUrl", "");
+                updates.put("unsentAt", now);
+
+                db.collection("chats")
+                        .document(chatId)
+                        .collection("messages")
+                        .document(msg.getMessageId())
+                        .update(updates)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Message unsent.", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to unsend message: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        });
+
+                // If this was the latest message, update parent
+                if (!messageList.isEmpty() && messageList.get(messageList.size() - 1).getMessageId().equals(msg.getMessageId())) {
+                    db.collection("chats").document(chatId).update(
+                            "lastMessage", "A message was unsent",
+                            "updatedAt", FieldValue.serverTimestamp()
+                    );
+                }
+            });
+        }
+
+        dialog.show();
+    }
+
+    private void showConversationActionsDialog() {
+        if (chatId == null || chatId.trim().isEmpty()) {
+            Toast.makeText(this, "No active conversation to manage.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_conversation_actions, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        TextView tvConvActionsTitle = dialogView.findViewById(R.id.tvConvActionsTitle);
+        TextView tvConvActionsSubtitle = dialogView.findViewById(R.id.tvConvActionsSubtitle);
+        View actionArchive = dialogView.findViewById(R.id.actionArchiveConversation);
+        TextView tvArchiveLabel = dialogView.findViewById(R.id.tvArchiveLabel);
+        TextView tvArchiveDesc = dialogView.findViewById(R.id.tvArchiveDesc);
+        ImageView ivArchiveIcon = dialogView.findViewById(R.id.ivArchiveIcon);
+
+        View actionBlock = dialogView.findViewById(R.id.actionBlockConversation);
+        TextView tvBlockLabel = dialogView.findViewById(R.id.tvBlockLabel);
+        TextView tvBlockDesc = dialogView.findViewById(R.id.tvBlockDesc);
+        ImageView ivBlockIcon = dialogView.findViewById(R.id.ivBlockIcon);
+
+        View actionDelete = dialogView.findViewById(R.id.actionDeleteConversation);
+        View btnCancel = dialogView.findViewById(R.id.btnCancelConvActions);
+
+        if (isUserAdmin) {
+            if (tvConvActionsTitle != null) tvConvActionsTitle.setText("Conversation Options");
+            if (tvConvActionsSubtitle != null) tvConvActionsSubtitle.setText("Student Inquiry • Conversation Management");
+            if (tvArchiveLabel != null) {
+                tvArchiveLabel.setText(isConversationArchived ? "Unarchive Conversation" : "Archive Conversation");
+            }
+            if (tvArchiveDesc != null) {
+                tvArchiveDesc.setText(isConversationArchived ? "Restore this conversation back to active inbox" : "Move to archived folder to keep active desk clean");
+            }
+            if (ivArchiveIcon != null) {
+                ivArchiveIcon.setImageResource(R.drawable.ic_archive);
+            }
+
+            if (tvBlockLabel != null) {
+                tvBlockLabel.setText(isConversationBlocked ? "Unblock Student" : "Block Student");
+            }
+            if (tvBlockDesc != null) {
+                tvBlockDesc.setText(isConversationBlocked ? "Allow this student to send messages again" : "Prevent this student from sending new messages");
+            }
+            if (ivBlockIcon != null) {
+                if (isConversationBlocked) {
+                    ivBlockIcon.setImageResource(R.drawable.ic_check_circle_purple);
+                    ivBlockIcon.setImageTintList(ColorStateList.valueOf(getResources().getColor(R.color.green_success, null)));
+                } else {
+                    ivBlockIcon.setImageResource(R.drawable.ic_block);
+                    ivBlockIcon.setImageTintList(ColorStateList.valueOf(getResources().getColor(R.color.text_secondary, null)));
+                }
+            }
+
+            if (actionArchive != null) {
+                actionArchive.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    toggleArchiveConversation(!isConversationArchived);
+                });
+            }
+
+            if (actionBlock != null) {
+                actionBlock.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    toggleBlockConversation(!isConversationBlocked);
+                });
+            }
+        } else {
+            // Student options
+            if (tvConvActionsTitle != null) tvConvActionsTitle.setText("Chat Options");
+            if (tvConvActionsSubtitle != null) tvConvActionsSubtitle.setText("Manage your conversation thread");
+            if (actionBlock != null) actionBlock.setVisibility(View.GONE);
+            if (actionArchive != null) {
+                if (tvArchiveLabel != null) {
+                    tvArchiveLabel.setText(isConversationArchived ? "Unarchive Chat" : "Archive Chat");
+                }
+                if (tvArchiveDesc != null) {
+                    tvArchiveDesc.setText(isConversationArchived ? "Move back to your active message inbox" : "Hide from active inbox without losing history");
+                }
+                actionArchive.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    toggleArchiveConversation(!isConversationArchived);
+                });
+            }
+        }
+
+        if (actionDelete != null) {
+            actionDelete.setOnClickListener(v -> {
+                dialog.dismiss();
+                confirmDeleteConversation();
+            });
+        }
+
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
+    }
+
+    private void toggleArchiveConversation(boolean archive) {
+        if (chatId == null || chatId.trim().isEmpty()) return;
+        db.collection("chats").document(chatId).update("isArchived", archive)
+                .addOnSuccessListener(aVoid -> {
+                    isConversationArchived = archive;
+                    Toast.makeText(this, archive ? "Conversation moved to Archive." : "Conversation unarchived.", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update archive status: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void toggleBlockConversation(boolean block) {
+        if (chatId == null || chatId.trim().isEmpty()) return;
+        db.collection("chats").document(chatId).update("isBlocked", block)
+                .addOnSuccessListener(aVoid -> {
+                    isConversationBlocked = block;
+                    Toast.makeText(this, block ? "Student has been blocked." : "Student has been unblocked.", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update block status: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void confirmDeleteConversation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Conversation")
+                .setMessage("Are you sure you want to permanently delete this conversation? All messages will be removed.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteEntireConversation())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteEntireConversation() {
+        if (chatId == null || chatId.trim().isEmpty()) return;
+        Toast.makeText(this, "Deleting conversation...", Toast.LENGTH_SHORT).show();
+
+        // Delete messages in subcollection
+        db.collection("chats").document(chatId).collection("messages").get().addOnSuccessListener(snapshot -> {
+            if (snapshot != null) {
+                com.google.firebase.firestore.WriteBatch batch = db.batch();
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    batch.delete(doc.getReference());
+                }
+                batch.delete(db.collection("chats").document(chatId));
+                batch.commit().addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Conversation deleted.", Toast.LENGTH_SHORT).show();
+                    finish();
+                }).addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to delete: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).addOnFailureListener(e -> {
+            db.collection("chats").document(chatId).delete().addOnSuccessListener(aVoid -> {
+                Toast.makeText(this, "Conversation deleted.", Toast.LENGTH_SHORT).show();
+                finish();
+            });
+        });
     }
 
     private void checkAndRecoverParentMessage() {
@@ -614,6 +984,10 @@ public class MessageActivity extends AppCompatActivity {
         super.onDestroy();
         if (chatId != null && chatId.equals(ChatNotificationHelper.activeChatId)) {
             ChatNotificationHelper.activeChatId = null;
+        }
+        if (chatDocListenerRegistration != null) {
+            chatDocListenerRegistration.remove();
+            chatDocListenerRegistration = null;
         }
         if (chatListenerRegistration != null) {
             chatListenerRegistration.remove();

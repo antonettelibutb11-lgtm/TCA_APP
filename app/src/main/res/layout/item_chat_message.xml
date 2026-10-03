@@ -14,6 +14,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end"
         android:background="@drawable/bg_bubble_sent"
+        android:clickable="true"
+        android:focusable="true"
         android:orientation="vertical"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp"
@@ -44,14 +46,32 @@
             android:textColor="@color/white"
             android:textSize="14sp" />
 
-        <TextView
-            android:id="@+id/tvSentTime"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="3dp"
-            android:textColor="#E0C2EC"
-            android:textSize="10sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvSentEdited"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="(edited)"
+                android:textColor="#E0C2EC"
+                android:textSize="9.5sp"
+                android:textStyle="italic"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvSentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#E0C2EC"
+                android:textSize="10sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Received Message Bubble (Left Side) -->
@@ -61,6 +81,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="start"
         android:background="@drawable/bg_bubble_received"
+        android:clickable="true"
+        android:focusable="true"
         android:orientation="vertical"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp"
@@ -102,14 +124,32 @@
             android:textColor="@color/text_secondary"
             android:textSize="14sp" />
 
-        <TextView
-            android:id="@+id/tvReceivedTime"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="3dp"
-            android:textColor="@color/text_muted"
-            android:textSize="10sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvReceivedEdited"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:text="(edited)"
+                android:textColor="@color/text_muted"
+                android:textSize="9.5sp"
+                android:textStyle="italic"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvReceivedTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_muted"
+                android:textSize="10sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>

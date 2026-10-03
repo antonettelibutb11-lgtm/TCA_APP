@@ -1,10 +1,15 @@
 package com.example.tca_app;
 
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -36,6 +41,10 @@ public class AdminInboxActivity extends AppCompatActivity {
 
     private static final String TAG = "AdminInboxActivity";
 
+    private static final int TAB_ALL = 0;
+    private static final int TAB_UNREAD = 1;
+    private static final int TAB_ARCHIVED = 2;
+
     private RecyclerView rvAdminInbox;
     private AdminInboxAdapter adapter;
 
@@ -52,8 +61,9 @@ public class AdminInboxActivity extends AppCompatActivity {
     private ImageView ivClearSearch;
     private TextView tabInboxAll;
     private TextView tabInboxUnread;
+    private TextView tabInboxArchived;
 
-    private boolean showUnreadOnly = false;
+    private int currentFilterTab = TAB_ALL;
     private String currentSearchQuery = "";
 
     private FirebaseFirestore db;
@@ -82,18 +92,27 @@ public class AdminInboxActivity extends AppCompatActivity {
         ivClearSearch = findViewById(R.id.ivClearSearch);
         tabInboxAll = findViewById(R.id.tabInboxAll);
         tabInboxUnread = findViewById(R.id.tabInboxUnread);
+        tabInboxArchived = findViewById(R.id.tabInboxArchived);
 
         rvAdminInbox = findViewById(R.id.rvAdminInbox);
         rvAdminInbox.setLayoutManager(new LinearLayoutManager(this));
 
-        adapter = new AdminInboxAdapter(displayedConversationList, conversation -> {
-            Intent intent = new Intent(AdminInboxActivity.this, MessageActivity.class);
-            intent.putExtra("CHAT_ID", conversation.getChatId());
-            intent.putExtra("RECIPIENT_UID", conversation.getStudentUid());
-            intent.putExtra("RECIPIENT_NAME", conversation.getStudentName());
-            intent.putExtra("RECIPIENT_EMAIL", conversation.getStudentEmail());
-            intent.putExtra("IS_ADMIN_REPLY", true);
-            startActivity(intent);
+        adapter = new AdminInboxAdapter(displayedConversationList, new AdminInboxAdapter.OnConversationActionListener() {
+            @Override
+            public void onConversationClick(ChatConversation conversation) {
+                Intent intent = new Intent(AdminInboxActivity.this, MessageActivity.class);
+                intent.putExtra("CHAT_ID", conversation.getChatId());
+                intent.putExtra("RECIPIENT_UID", conversation.getStudentUid());
+                intent.putExtra("RECIPIENT_NAME", conversation.getStudentName());
+                intent.putExtra("RECIPIENT_EMAIL", conversation.getStudentEmail());
+                intent.putExtra("IS_ADMIN_REPLY", true);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onConversationOptionsClick(ChatConversation conversation, int position, View anchorView) {
+                showConversationActionModal(conversation);
+            }
         });
         rvAdminInbox.setAdapter(adapter);
 
@@ -105,7 +124,7 @@ public class AdminInboxActivity extends AppCompatActivity {
         // Tab switching
         if (tabInboxAll != null) {
             tabInboxAll.setOnClickListener(v -> {
-                showUnreadOnly = false;
+                currentFilterTab = TAB_ALL;
                 updateTabStyles();
                 applyFilterAndSearch();
             });
@@ -113,7 +132,15 @@ public class AdminInboxActivity extends AppCompatActivity {
 
         if (tabInboxUnread != null) {
             tabInboxUnread.setOnClickListener(v -> {
-                showUnreadOnly = true;
+                currentFilterTab = TAB_UNREAD;
+                updateTabStyles();
+                applyFilterAndSearch();
+            });
+        }
+
+        if (tabInboxArchived != null) {
+            tabInboxArchived.setOnClickListener(v -> {
+                currentFilterTab = TAB_ARCHIVED;
                 updateTabStyles();
                 applyFilterAndSearch();
             });
@@ -149,30 +176,30 @@ public class AdminInboxActivity extends AppCompatActivity {
     }
 
     private void updateTabStyles() {
-        if (tabInboxAll == null || tabInboxUnread == null) return;
+        if (tabInboxAll == null || tabInboxUnread == null || tabInboxArchived == null) return;
 
-        if (!showUnreadOnly) {
-            tabInboxAll.setBackgroundResource(R.drawable.bg_purple_button);
-            tabInboxAll.setTextColor(getResources().getColor(R.color.white, null));
+        tabInboxAll.setBackgroundResource(currentFilterTab == TAB_ALL ? R.drawable.bg_purple_button : R.drawable.bg_chip_unselected);
+        tabInboxAll.setTextColor(getResources().getColor(currentFilterTab == TAB_ALL ? R.color.white : R.color.text_secondary, null));
 
-            tabInboxUnread.setBackgroundResource(R.drawable.bg_chip_unselected);
-            tabInboxUnread.setTextColor(getResources().getColor(R.color.text_secondary, null));
-        } else {
-            tabInboxUnread.setBackgroundResource(R.drawable.bg_purple_button);
-            tabInboxUnread.setTextColor(getResources().getColor(R.color.white, null));
+        tabInboxUnread.setBackgroundResource(currentFilterTab == TAB_UNREAD ? R.drawable.bg_purple_button : R.drawable.bg_chip_unselected);
+        tabInboxUnread.setTextColor(getResources().getColor(currentFilterTab == TAB_UNREAD ? R.color.white : R.color.text_secondary, null));
 
-            tabInboxAll.setBackgroundResource(R.drawable.bg_chip_unselected);
-            tabInboxAll.setTextColor(getResources().getColor(R.color.text_secondary, null));
-        }
+        tabInboxArchived.setBackgroundResource(currentFilterTab == TAB_ARCHIVED ? R.drawable.bg_purple_button : R.drawable.bg_chip_unselected);
+        tabInboxArchived.setTextColor(getResources().getColor(currentFilterTab == TAB_ARCHIVED ? R.color.white : R.color.text_secondary, null));
     }
 
     private void applyFilterAndSearch() {
         displayedConversationList.clear();
 
         for (ChatConversation conv : allConversationList) {
-            // 1. Check unread filter
-            if (showUnreadOnly && !conv.isUnread()) {
-                continue;
+            // 1. Check tab filter
+            if (currentFilterTab == TAB_ARCHIVED) {
+                if (!conv.isArchived()) continue;
+            } else if (currentFilterTab == TAB_UNREAD) {
+                if (conv.isArchived() || !conv.isUnread()) continue;
+            } else {
+                // TAB_ALL: Non-archived conversations
+                if (conv.isArchived()) continue;
             }
 
             // 2. Check search query
@@ -194,20 +221,30 @@ public class AdminInboxActivity extends AppCompatActivity {
     }
 
     private void updateCountersAndEmptyState() {
-        int totalCount = allConversationList.size();
+        int allCount = 0;
         int unreadCount = 0;
+        int archivedCount = 0;
+
         for (ChatConversation c : allConversationList) {
-            if (c.isUnread()) unreadCount++;
+            if (c.isArchived()) {
+                archivedCount++;
+            } else {
+                allCount++;
+                if (c.isUnread()) unreadCount++;
+            }
         }
 
         if (tabInboxAll != null) {
-            tabInboxAll.setText("All (" + totalCount + ")");
+            tabInboxAll.setText("All (" + allCount + ")");
         }
         if (tabInboxUnread != null) {
             tabInboxUnread.setText("Unread (" + unreadCount + ")");
         }
+        if (tabInboxArchived != null) {
+            tabInboxArchived.setText("Archived (" + archivedCount + ")");
+        }
         if (tvInquiryBadgeCount != null) {
-            tvInquiryBadgeCount.setText(totalCount + (totalCount == 1 ? " Total" : " Total"));
+            tvInquiryBadgeCount.setText(allCount + (allCount == 1 ? " Active" : " Active"));
         }
 
         if (layoutEmptyInbox != null) {
@@ -215,8 +252,10 @@ public class AdminInboxActivity extends AppCompatActivity {
                 layoutEmptyInbox.setVisibility(View.VISIBLE);
                 if (!currentSearchQuery.isEmpty()) {
                     if (tvEmptyStateTitle != null) tvEmptyStateTitle.setText("No Matches Found");
-                } else if (showUnreadOnly) {
+                } else if (currentFilterTab == TAB_UNREAD) {
                     if (tvEmptyStateTitle != null) tvEmptyStateTitle.setText("No Unread Messages");
+                } else if (currentFilterTab == TAB_ARCHIVED) {
+                    if (tvEmptyStateTitle != null) tvEmptyStateTitle.setText("No Archived Inquiries");
                 } else {
                     if (tvEmptyStateTitle != null) tvEmptyStateTitle.setText("No Student Inquiries Yet");
                 }
@@ -352,7 +391,7 @@ public class AdminInboxActivity extends AppCompatActivity {
             ts = doc.getTimestamp("updatedAt").toDate().getTime();
         }
 
-        return new ChatConversation(
+        ChatConversation conv = new ChatConversation(
                 chatId,
                 studentUid,
                 studentName,
@@ -364,6 +403,156 @@ public class AdminInboxActivity extends AppCompatActivity {
                 lastSenderName != null ? lastSenderName : studentName,
                 lastSenderRole != null ? lastSenderRole : "STUDENT"
         );
+        Boolean isArchived = doc.getBoolean("isArchived");
+        conv.setArchived(Boolean.TRUE.equals(isArchived));
+
+        Boolean isBlocked = doc.getBoolean("isBlocked");
+        conv.setBlocked(Boolean.TRUE.equals(isBlocked));
+
+        return conv;
+    }
+
+    private void showConversationActionModal(ChatConversation conversation) {
+        if (conversation == null || conversation.getChatId().isEmpty()) return;
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_conversation_actions, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        TextView tvConvActionsTitle = dialogView.findViewById(R.id.tvConvActionsTitle);
+        TextView tvConvActionsSubtitle = dialogView.findViewById(R.id.tvConvActionsSubtitle);
+        View actionArchive = dialogView.findViewById(R.id.actionArchiveConversation);
+        TextView tvArchiveLabel = dialogView.findViewById(R.id.tvArchiveLabel);
+        TextView tvArchiveDesc = dialogView.findViewById(R.id.tvArchiveDesc);
+        ImageView ivArchiveIcon = dialogView.findViewById(R.id.ivArchiveIcon);
+
+        View actionBlock = dialogView.findViewById(R.id.actionBlockConversation);
+        TextView tvBlockLabel = dialogView.findViewById(R.id.tvBlockLabel);
+        TextView tvBlockDesc = dialogView.findViewById(R.id.tvBlockDesc);
+        ImageView ivBlockIcon = dialogView.findViewById(R.id.ivBlockIcon);
+
+        View actionDelete = dialogView.findViewById(R.id.actionDeleteConversation);
+        View btnCancel = dialogView.findViewById(R.id.btnCancelConvActions);
+
+        if (tvConvActionsTitle != null) {
+            tvConvActionsTitle.setText(conversation.getStudentName());
+        }
+        if (tvConvActionsSubtitle != null) {
+            tvConvActionsSubtitle.setText("Student Inquiry • Conversation Management");
+        }
+
+        boolean isArchived = conversation.isArchived();
+        if (tvArchiveLabel != null) {
+            tvArchiveLabel.setText(isArchived ? "Unarchive Conversation" : "Archive Conversation");
+        }
+        if (tvArchiveDesc != null) {
+            tvArchiveDesc.setText(isArchived ? "Restore this conversation back to active inbox" : "Move to archived folder to keep active desk clean");
+        }
+        if (ivArchiveIcon != null) {
+            ivArchiveIcon.setImageResource(R.drawable.ic_archive);
+        }
+
+        boolean isBlocked = conversation.isBlocked();
+        if (tvBlockLabel != null) {
+            tvBlockLabel.setText(isBlocked ? "Unblock Student" : "Block Student");
+        }
+        if (tvBlockDesc != null) {
+            tvBlockDesc.setText(isBlocked ? "Allow this student to send messages again" : "Prevent this student from sending new messages");
+        }
+        if (ivBlockIcon != null) {
+            if (isBlocked) {
+                ivBlockIcon.setImageResource(R.drawable.ic_check_circle_purple);
+                ivBlockIcon.setImageTintList(ColorStateList.valueOf(getResources().getColor(R.color.green_success, null)));
+            } else {
+                ivBlockIcon.setImageResource(R.drawable.ic_block);
+                ivBlockIcon.setImageTintList(ColorStateList.valueOf(getResources().getColor(R.color.text_secondary, null)));
+            }
+        }
+
+        if (actionArchive != null) {
+            actionArchive.setOnClickListener(v -> {
+                dialog.dismiss();
+                toggleArchiveConversation(conversation, !isArchived);
+            });
+        }
+
+        if (actionBlock != null) {
+            actionBlock.setOnClickListener(v -> {
+                dialog.dismiss();
+                toggleBlockConversation(conversation, !isBlocked);
+            });
+        }
+
+        if (actionDelete != null) {
+            actionDelete.setOnClickListener(v -> {
+                dialog.dismiss();
+                confirmDeleteConversation(conversation);
+            });
+        }
+
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
+    }
+
+    private void toggleArchiveConversation(ChatConversation conv, boolean archive) {
+        db.collection("chats").document(conv.getChatId()).update("isArchived", archive)
+                .addOnSuccessListener(aVoid -> {
+                    conv.setArchived(archive);
+                    Toast.makeText(this, archive ? "Conversation moved to Archive." : "Conversation unarchived.", Toast.LENGTH_SHORT).show();
+                    applyFilterAndSearch();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update archive status: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void toggleBlockConversation(ChatConversation conv, boolean block) {
+        db.collection("chats").document(conv.getChatId()).update("isBlocked", block)
+                .addOnSuccessListener(aVoid -> {
+                    conv.setBlocked(block);
+                    Toast.makeText(this, block ? "Student has been blocked." : "Student has been unblocked.", Toast.LENGTH_SHORT).show();
+                    applyFilterAndSearch();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Failed to update block status: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
+    private void confirmDeleteConversation(ChatConversation conv) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Conversation")
+                .setMessage("Are you sure you want to permanently delete the conversation with " + conv.getStudentName() + "? All messages will be removed.")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    Toast.makeText(this, "Deleting conversation...", Toast.LENGTH_SHORT).show();
+                    db.collection("chats").document(conv.getChatId()).collection("messages").get().addOnSuccessListener(snapshot -> {
+                        if (snapshot != null) {
+                            com.google.firebase.firestore.WriteBatch batch = db.batch();
+                            for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                                batch.delete(doc.getReference());
+                            }
+                            batch.delete(db.collection("chats").document(conv.getChatId()));
+                            batch.commit().addOnSuccessListener(aVoid -> {
+                                Toast.makeText(this, "Conversation deleted.", Toast.LENGTH_SHORT).show();
+                                allConversationList.remove(conv);
+                                applyFilterAndSearch();
+                            }).addOnFailureListener(e -> {
+                                Toast.makeText(this, "Error deleting: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                        }
+                    }).addOnFailureListener(e -> {
+                        db.collection("chats").document(conv.getChatId()).delete().addOnSuccessListener(aVoid -> {
+                            Toast.makeText(this, "Conversation deleted.", Toast.LENGTH_SHORT).show();
+                            allConversationList.remove(conv);
+                            applyFilterAndSearch();
+                        });
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void updateConversationsFromMap(Map<String, ChatConversation> map) {

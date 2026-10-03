@@ -12,6 +12,8 @@ public class ChatConversation {
     private String lastSenderName;
     private String lastSenderRole;
     private boolean unread;
+    private boolean isArchived = false;
+    private boolean isBlocked = false;
 
     public ChatConversation() {}
 
@@ -30,6 +32,12 @@ public class ChatConversation {
         this.lastSenderRole = lastSenderRole;
         this.unread = !"ADMIN".equalsIgnoreCase(lastSenderRole);
     }
+
+    public boolean isArchived() { return isArchived; }
+    public void setArchived(boolean archived) { isArchived = archived; }
+
+    public boolean isBlocked() { return isBlocked; }
+    public void setBlocked(boolean blocked) { isBlocked = blocked; }
 
     public String getChatId() {
         return chatId != null ? chatId : "";

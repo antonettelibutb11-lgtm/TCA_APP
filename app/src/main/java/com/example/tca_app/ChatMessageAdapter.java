@@ -1,13 +1,20 @@
 package com.example.tca_app;
 
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -22,14 +29,24 @@ import java.util.Locale;
 
 public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.MessageViewHolder> {
 
+    public interface OnMessageActionListener {
+        void onEditMessage(ChatMessage message, int position);
+        void onUnsendMessage(ChatMessage message, int position);
+    }
+
     private final List<ChatMessage> messageList;
     private final String currentUserId;
     private boolean isCurrentUserAdmin = false;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.US);
+    private OnMessageActionListener actionListener;
 
     public ChatMessageAdapter(List<ChatMessage> messageList, String currentUserId) {
         this.messageList = messageList;
         this.currentUserId = currentUserId;
+    }
+
+    public void setOnMessageActionListener(OnMessageActionListener listener) {
+        this.actionListener = listener;
     }
 
     public void setCurrentUserAdmin(boolean admin) {
@@ -54,12 +71,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         String imageUrl = msg.getImageUrl();
         boolean hasImage = imageUrl != null && !imageUrl.trim().isEmpty();
         boolean hasText = text != null && !text.trim().isEmpty();
+        boolean isUnsent = msg.isUnsent();
+        boolean isEdited = msg.isEdited();
 
         String senderId = msg.getSenderId() != null ? msg.getSenderId().trim() : "";
         String myId = currentUserId != null ? currentUserId.trim() : "";
-        // Determine if the message was sent by the current user based on UID only.
-        // Do NOT rely on senderRole for this — admin messages from OTHER admins
-        // should still appear on the LEFT (received), not the RIGHT (sent).
         boolean isSentByMe = !myId.isEmpty() && senderId.equalsIgnoreCase(myId);
 
         if (isSentByMe) {
@@ -67,33 +83,62 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
             holder.layoutSentMessage.setVisibility(View.VISIBLE);
             holder.layoutReceivedMessage.setVisibility(View.GONE);
 
-            // Handle image
-            if (hasImage) {
-                holder.cardSentImage.setVisibility(View.VISIBLE);
-                Glide.with(context)
-                        .load(imageUrl)
-                        .centerCrop()
-                        .placeholder(R.drawable.bg_card_selected)
-                        .into(holder.ivSentImage);
-
-                holder.ivSentImage.setOnClickListener(v -> {
-                    Intent intent = new Intent(context, FullScreenImageActivity.class);
-                    intent.putExtra("photoUri", imageUrl);
-                    context.startActivity(intent);
-                });
-            } else {
+            if (isUnsent) {
                 holder.cardSentImage.setVisibility(View.GONE);
-            }
-
-            // Handle text
-            if (hasText) {
                 holder.tvSentText.setVisibility(View.VISIBLE);
-                holder.tvSentText.setText(text);
+                holder.tvSentText.setText("You unsent a message");
+                holder.tvSentText.setTypeface(null, Typeface.ITALIC);
+                holder.tvSentText.setTextColor(Color.parseColor("#E0C2EC"));
+                holder.tvSentEdited.setVisibility(View.GONE);
+                holder.tvSentTime.setText(formattedTime);
+                holder.layoutSentMessage.setOnClickListener(null);
+                holder.layoutSentMessage.setOnLongClickListener(null);
             } else {
-                holder.tvSentText.setVisibility(View.GONE);
-            }
+                holder.tvSentText.setTypeface(null, Typeface.NORMAL);
+                holder.tvSentText.setTextColor(Color.WHITE);
 
-            holder.tvSentTime.setText(formattedTime);
+                // Handle image
+                if (hasImage) {
+                    holder.cardSentImage.setVisibility(View.VISIBLE);
+                    Glide.with(context)
+                            .load(imageUrl)
+                            .centerCrop()
+                            .placeholder(R.drawable.bg_card_selected)
+                            .into(holder.ivSentImage);
+
+                    holder.ivSentImage.setOnClickListener(v -> {
+                        Intent intent = new Intent(context, FullScreenImageActivity.class);
+                        intent.putExtra("photoUri", imageUrl);
+                        context.startActivity(intent);
+                    });
+                } else {
+                    holder.cardSentImage.setVisibility(View.GONE);
+                }
+
+                // Handle text
+                if (hasText) {
+                    holder.tvSentText.setVisibility(View.VISIBLE);
+                    holder.tvSentText.setText(text);
+                } else {
+                    holder.tvSentText.setVisibility(View.GONE);
+                }
+
+                // Handle edited status
+                holder.tvSentEdited.setVisibility(isEdited ? View.VISIBLE : View.GONE);
+                holder.tvSentTime.setText(formattedTime);
+
+                // Options dialog on click / long click
+                View.OnLongClickListener optionsListener = v -> {
+                    showMessageOptionsDialog(context, msg, holder.getAdapterPosition());
+                    return true;
+                };
+
+                holder.layoutSentMessage.setOnLongClickListener(optionsListener);
+                holder.layoutSentMessage.setOnClickListener(v -> {
+                    // Quick option dialog for ease of access
+                    showMessageOptionsDialog(context, msg, holder.getAdapterPosition());
+                });
+            }
         } else {
             // Received message (Left)
             holder.layoutReceivedMessage.setVisibility(View.VISIBLE);
@@ -101,33 +146,115 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
             holder.tvReceivedSender.setText(msg.getSenderName());
 
-            // Handle image
-            if (hasImage) {
-                holder.cardReceivedImage.setVisibility(View.VISIBLE);
-                Glide.with(context)
-                        .load(imageUrl)
-                        .centerCrop()
-                        .placeholder(R.drawable.bg_card_selected)
-                        .into(holder.ivReceivedImage);
-
-                holder.ivReceivedImage.setOnClickListener(v -> {
-                    Intent intent = new Intent(context, FullScreenImageActivity.class);
-                    intent.putExtra("photoUri", imageUrl);
-                    context.startActivity(intent);
-                });
-            } else {
+            if (isUnsent) {
                 holder.cardReceivedImage.setVisibility(View.GONE);
-            }
-
-            // Handle text
-            if (hasText) {
                 holder.tvReceivedText.setVisibility(View.VISIBLE);
-                holder.tvReceivedText.setText(text);
+                holder.tvReceivedText.setText("This message was unsent");
+                holder.tvReceivedText.setTypeface(null, Typeface.ITALIC);
+                holder.tvReceivedText.setTextColor(Color.parseColor("#9A84AD"));
+                holder.tvReceivedEdited.setVisibility(View.GONE);
+                holder.tvReceivedTime.setText(formattedTime);
             } else {
-                holder.tvReceivedText.setVisibility(View.GONE);
-            }
+                holder.tvReceivedText.setTypeface(null, Typeface.NORMAL);
+                holder.tvReceivedText.setTextColor(context.getResources().getColor(R.color.text_secondary, null));
 
-            holder.tvReceivedTime.setText(formattedTime);
+                // Handle image
+                if (hasImage) {
+                    holder.cardReceivedImage.setVisibility(View.VISIBLE);
+                    Glide.with(context)
+                            .load(imageUrl)
+                            .centerCrop()
+                            .placeholder(R.drawable.bg_card_selected)
+                            .into(holder.ivReceivedImage);
+
+                    holder.ivReceivedImage.setOnClickListener(v -> {
+                        Intent intent = new Intent(context, FullScreenImageActivity.class);
+                        intent.putExtra("photoUri", imageUrl);
+                        context.startActivity(intent);
+                    });
+                } else {
+                    holder.cardReceivedImage.setVisibility(View.GONE);
+                }
+
+                // Handle text
+                if (hasText) {
+                    holder.tvReceivedText.setVisibility(View.VISIBLE);
+                    holder.tvReceivedText.setText(text);
+                } else {
+                    holder.tvReceivedText.setVisibility(View.GONE);
+                }
+
+                holder.tvReceivedEdited.setVisibility(isEdited ? View.VISIBLE : View.GONE);
+                holder.tvReceivedTime.setText(formattedTime);
+
+                // Allow copying received text on long click
+                holder.layoutReceivedMessage.setOnLongClickListener(v -> {
+                    if (hasText) {
+                        copyTextToClipboard(context, text);
+                    }
+                    return true;
+                });
+            }
+        }
+    }
+
+    private void showMessageOptionsDialog(Context context, ChatMessage msg, int position) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_chat_message_actions, null);
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        View actionEditMessage = dialogView.findViewById(R.id.actionEditMessage);
+        View actionCopyMessage = dialogView.findViewById(R.id.actionCopyMessage);
+        View actionUnsendMessage = dialogView.findViewById(R.id.actionUnsendMessage);
+
+        // Edit is only available for text messages
+        boolean canEdit = "TEXT".equalsIgnoreCase(msg.getMessageType()) && msg.getText() != null && !msg.getText().trim().isEmpty();
+        if (actionEditMessage != null) {
+            actionEditMessage.setVisibility(canEdit ? View.VISIBLE : View.GONE);
+            actionEditMessage.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (actionListener != null) {
+                    actionListener.onEditMessage(msg, position);
+                }
+            });
+        }
+
+        if (actionCopyMessage != null) {
+            actionCopyMessage.setOnClickListener(v -> {
+                dialog.dismiss();
+                copyTextToClipboard(context, msg.getText());
+            });
+        }
+
+        if (actionUnsendMessage != null) {
+            actionUnsendMessage.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (actionListener != null) {
+                    actionListener.onUnsendMessage(msg, position);
+                }
+            });
+        }
+
+        View btnCancel = dialogView.findViewById(R.id.btnCancelMessageActions);
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
+    }
+
+    private void copyTextToClipboard(Context context, String text) {
+        if (text == null || text.trim().isEmpty()) return;
+        ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard != null) {
+            ClipData clip = ClipData.newPlainText("Chat Message", text);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(context, "Message copied to clipboard.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -140,7 +267,8 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
         LinearLayout layoutSentMessage, layoutReceivedMessage;
         CardView cardSentImage, cardReceivedImage;
         ImageView ivSentImage, ivReceivedImage;
-        TextView tvSentText, tvSentTime, tvReceivedSender, tvReceivedText, tvReceivedTime;
+        TextView tvSentText, tvSentTime, tvSentEdited;
+        TextView tvReceivedSender, tvReceivedText, tvReceivedTime, tvReceivedEdited;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -154,9 +282,12 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
 
             tvSentText = itemView.findViewById(R.id.tvSentText);
             tvSentTime = itemView.findViewById(R.id.tvSentTime);
+            tvSentEdited = itemView.findViewById(R.id.tvSentEdited);
+
             tvReceivedSender = itemView.findViewById(R.id.tvReceivedSender);
             tvReceivedText = itemView.findViewById(R.id.tvReceivedText);
             tvReceivedTime = itemView.findViewById(R.id.tvReceivedTime);
+            tvReceivedEdited = itemView.findViewById(R.id.tvReceivedEdited);
         }
     }
 }

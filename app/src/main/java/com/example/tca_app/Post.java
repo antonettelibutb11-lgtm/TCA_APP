@@ -114,4 +114,9 @@ public class Post {
     /** Transient in-memory flag — NOT persisted to Firestore. Set by PostAdapter after a subcollection check. */
     public boolean isLikedByCurrentUser() { return isLikedByCurrentUser; }
     public void setLikedByCurrentUser(boolean liked) { this.isLikedByCurrentUser = liked; }
+
+    /** Transient in-memory flag for UI expansion (See more / See less). */
+    private transient boolean isExpanded = false;
+    public boolean isExpanded() { return isExpanded; }
+    public void setExpanded(boolean expanded) { this.isExpanded = expanded; }
 }

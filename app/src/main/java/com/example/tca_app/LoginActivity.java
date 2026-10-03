@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,8 +52,8 @@ public class LoginActivity extends AppCompatActivity {
         EditText etPassword = findViewById(R.id.etPassword);
         EditText etConfirmPassword = findViewById(R.id.etConfirmPassword);
         TextView btnLogin = findViewById(R.id.btnLogin);
-        TextView btnTogglePassword = findViewById(R.id.btnTogglePassword);
-        TextView btnToggleConfirmPassword = findViewById(R.id.btnToggleConfirmPassword);
+        ImageView btnTogglePassword = findViewById(R.id.btnTogglePassword);
+        ImageView btnToggleConfirmPassword = findViewById(R.id.btnToggleConfirmPassword);
         TextView tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
         final String[] selectedRole = {"STUDENT"};
@@ -84,7 +85,11 @@ public class LoginActivity extends AppCompatActivity {
         if (tvForgotPassword != null) {
             tvForgotPassword.setOnClickListener(v -> {
                 String currentInput = etEmail != null ? etEmail.getText().toString().trim() : "";
-                showForgotPasswordDialog(currentInput);
+                Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
+                if (!currentInput.isEmpty()) {
+                    intent.putExtra("prefill_email", currentInput);
+                }
+                startActivity(intent);
             });
         }
 
@@ -92,10 +97,12 @@ public class LoginActivity extends AppCompatActivity {
             btnTogglePassword.setOnClickListener(v -> {
                 if (etPassword.getTransformationMethod() instanceof android.text.method.PasswordTransformationMethod) {
                     etPassword.setTransformationMethod(android.text.method.HideReturnsTransformationMethod.getInstance());
-                    btnTogglePassword.setText("🙈");
+                    btnTogglePassword.setImageResource(R.drawable.ic_visibility);
+                    btnTogglePassword.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.purple_primary));
                 } else {
                     etPassword.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
-                    btnTogglePassword.setText("👁️");
+                    btnTogglePassword.setImageResource(R.drawable.ic_visibility_off);
+                    btnTogglePassword.clearColorFilter();
                 }
                 etPassword.setSelection(etPassword.getText().length());
             });
@@ -105,10 +112,12 @@ public class LoginActivity extends AppCompatActivity {
             btnToggleConfirmPassword.setOnClickListener(v -> {
                 if (etConfirmPassword.getTransformationMethod() instanceof android.text.method.PasswordTransformationMethod) {
                     etConfirmPassword.setTransformationMethod(android.text.method.HideReturnsTransformationMethod.getInstance());
-                    btnToggleConfirmPassword.setText("🙈");
+                    btnToggleConfirmPassword.setImageResource(R.drawable.ic_visibility);
+                    btnToggleConfirmPassword.setColorFilter(androidx.core.content.ContextCompat.getColor(this, R.color.purple_primary));
                 } else {
                     etConfirmPassword.setTransformationMethod(android.text.method.PasswordTransformationMethod.getInstance());
-                    btnToggleConfirmPassword.setText("👁️");
+                    btnToggleConfirmPassword.setImageResource(R.drawable.ic_visibility_off);
+                    btnToggleConfirmPassword.clearColorFilter();
                 }
                 etConfirmPassword.setSelection(etConfirmPassword.getText().length());
             });
@@ -219,7 +228,7 @@ public class LoginActivity extends AppCompatActivity {
                                                     if (!isFinishing() && !isDestroyed()) {
                                                         btnLogin.setEnabled(true);
                                                         new androidx.appcompat.app.AlertDialog.Builder(LoginActivity.this)
-                                                                .setTitle("🔑 Password Mismatch")
+                                                                .setTitle("Incorrect Password")
                                                                 .setMessage("The password you entered does not match the existing account for:\n\n" + email + "\n\nWould you like to reset your password?")
                                                                 .setPositiveButton("Reset Password", (dialog, which) -> {
                                                                     showForgotPasswordDialog(email);
@@ -372,43 +381,10 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void showForgotPasswordDialog(String prefillEmail) {
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-        builder.setTitle("🔑 Reset Your Password");
-        builder.setMessage("Please enter your registered email address to receive a password reset link.");
-
-        final EditText etResetEmail = new EditText(this);
-        etResetEmail.setHint("Registered Email Address");
-        etResetEmail.setSingleLine(true);
+        Intent intent = new Intent(LoginActivity.this, ForgotPasswordActivity.class);
         if (prefillEmail != null && !prefillEmail.isEmpty()) {
-            etResetEmail.setText(prefillEmail);
+            intent.putExtra("prefill_email", prefillEmail);
         }
-
-        int paddingPx = (int) (16 * getResources().getDisplayMetrics().density);
-        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
-        container.setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2);
-        container.addView(etResetEmail);
-        builder.setView(container);
-
-        builder.setPositiveButton("Send Reset Link", (dialog, which) -> {
-            String email = etResetEmail.getText().toString().trim();
-            if (email.isEmpty()) {
-                Toast.makeText(LoginActivity.this, getString(R.string.error_empty_email), Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            // Removed @bisu.edu.ph check for Forgot Password to allow faculty/staff emails
-            mAuth.sendPasswordResetEmail(email)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(LoginActivity.this, "✅ Password reset email sent. Check your inbox.", Toast.LENGTH_LONG).show();
-                        } else {
-                            String err = task.getException() != null ? task.getException().getMessage() : "Failed to send reset link";
-                            Toast.makeText(LoginActivity.this, "❌ Error sending password reset email: " + err, Toast.LENGTH_LONG).show();
-                        }
-                    });
-        });
-
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        startActivity(intent);
     }
 }

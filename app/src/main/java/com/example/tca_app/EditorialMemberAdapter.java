@@ -83,22 +83,31 @@ public class EditorialMemberAdapter extends RecyclerView.Adapter<EditorialMember
             holder.tvMemberInitials.setVisibility(View.VISIBLE);
         }
 
+        // Tap circle avatar -> View whole pic if member has a photo!
+        holder.frameMemberAvatar.setOnClickListener(v -> {
+            if (photoUrl != null && !photoUrl.trim().isEmpty()) {
+                android.content.Intent intent = new android.content.Intent(context, FullScreenImageActivity.class);
+                intent.putExtra("photoUri", photoUrl);
+                context.startActivity(intent);
+            } else if (isAdmin && photoListener != null) {
+                photoListener.onPhotoClick(member);
+            }
+        });
+
         // Only Admin can edit
         if (isAdmin) {
-            if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setVisibility(View.VISIBLE);
-            if (holder.btnChangePhoto != null) holder.btnChangePhoto.setVisibility(View.VISIBLE);
+            if (holder.badgeCameraEdit != null) {
+                holder.badgeCameraEdit.setVisibility(View.VISIBLE);
+                holder.badgeCameraEdit.setOnClickListener(v -> {
+                    if (photoListener != null) {
+                        photoListener.onPhotoClick(member);
+                    }
+                });
+            }
 
-            // Camera badge / avatar frame → change photo
-            View.OnClickListener photoClickAction = v -> {
-                if (photoListener != null) {
-                    photoListener.onPhotoClick(member);
-                }
-            };
-            holder.frameMemberAvatar.setOnClickListener(photoClickAction);
-            if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setOnClickListener(photoClickAction);
-
-            // Pencil icon → edit name & role
+            // Pencil icon → edit member info & photo
             if (holder.btnChangePhoto != null) {
+                holder.btnChangePhoto.setVisibility(View.VISIBLE);
                 holder.btnChangePhoto.setOnClickListener(v -> {
                     if (editListener != null) {
                         editListener.onEditClick(member);
@@ -108,12 +117,9 @@ public class EditorialMemberAdapter extends RecyclerView.Adapter<EditorialMember
 
             holder.itemView.setOnClickListener(null);
         } else {
-            // Student: View-only mode
+            // Student: View-only mode (can still tap photo to view whole picture)
             if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setVisibility(View.GONE);
             if (holder.btnChangePhoto != null) holder.btnChangePhoto.setVisibility(View.GONE);
-            holder.frameMemberAvatar.setOnClickListener(null);
-            if (holder.badgeCameraEdit != null) holder.badgeCameraEdit.setOnClickListener(null);
-            if (holder.btnChangePhoto != null) holder.btnChangePhoto.setOnClickListener(null);
             holder.itemView.setOnClickListener(null);
         }
     }

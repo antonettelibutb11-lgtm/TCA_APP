@@ -86,8 +86,8 @@ public class MembershipRequestAdapter extends RecyclerView.Adapter<MembershipReq
         db.collection("users").document(uid).update(updates)
                 .addOnSuccessListener(result -> {
                     setButtonsEnabled(holder, true);
-                    String statusStr = "APPROVE".equalsIgnoreCase(action) ? "Approved" : "Rejected";
-                    Toast.makeText(context, "✅ Membership " + statusStr + " for " + req.getName(), Toast.LENGTH_SHORT).show();
+                    String statusStr = "APPROVE".equalsIgnoreCase(action) ? "approved" : "declined";
+                    Toast.makeText(context, "Membership " + statusStr + " for " + req.getName(), Toast.LENGTH_SHORT).show();
                     int latestPos = holder.getAdapterPosition();
                     if (latestPos != RecyclerView.NO_POSITION && latestPos < requestList.size()) {
                         requestList.remove(latestPos);
@@ -98,7 +98,7 @@ public class MembershipRequestAdapter extends RecyclerView.Adapter<MembershipReq
                 })
                 .addOnFailureListener(e -> {
                     setButtonsEnabled(holder, true);
-                    Toast.makeText(context, "❌ Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "Unable to update request: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
     }
 

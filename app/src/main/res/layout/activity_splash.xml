@@ -47,6 +47,32 @@
             android:textSize="13sp"
             android:textStyle="italic" />
 
+        <LinearLayout
+            android:id="@+id/layoutSplashLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:indeterminateTint="@color/white" />
+
+            <TextView
+                android:id="@+id/tvSplashStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.02"
+                android:text="Loading campus updates..."
+                android:textColor="#E0C2EC"
+                android:textSize="13sp" />
+        </LinearLayout>
+
     </LinearLayout>
 
     <TextView

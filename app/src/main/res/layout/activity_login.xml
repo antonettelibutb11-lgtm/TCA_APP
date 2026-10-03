@@ -167,16 +167,17 @@
                     android:textColorHint="@color/text_muted"
                     android:textSize="13sp" />
 
-                <TextView
+                <ImageView
                     android:id="@+id/btnTogglePassword"
                     android:layout_width="40dp"
                     android:layout_height="match_parent"
                     android:layout_alignParentEnd="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
+                    android:contentDescription="Toggle Password Visibility"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:text="👁️"
-                    android:textSize="16sp" />
+                    android:padding="10dp"
+                    android:src="@drawable/ic_visibility_off" />
             </RelativeLayout>
 
             <TextView
@@ -206,16 +207,17 @@
                     android:textColorHint="@color/text_muted"
                     android:textSize="13sp" />
 
-                <TextView
+                <ImageView
                     android:id="@+id/btnToggleConfirmPassword"
                     android:layout_width="40dp"
                     android:layout_height="match_parent"
                     android:layout_alignParentEnd="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
+                    android:contentDescription="Toggle Confirm Password Visibility"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:text="👁️"
-                    android:textSize="16sp" />
+                    android:padding="10dp"
+                    android:src="@drawable/ic_visibility_off" />
             </RelativeLayout>
 
 

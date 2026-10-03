@@ -210,7 +210,7 @@ public class QRScannerActivity extends AppCompatActivity {
                 startCamera();
             } else {
                 new MaterialAlertDialogBuilder(this)
-                        .setTitle("📷 Camera Permission Required")
+                        .setTitle("Camera Permission Required")
                         .setMessage("Camera permission is required to scan event QR codes.")
                         .setPositiveButton("Grant Permission", (d, w) -> checkCameraPermissionAndStart())
                         .setNegativeButton("Cancel", (d, w) -> finish())
@@ -330,17 +330,17 @@ public class QRScannerActivity extends AppCompatActivity {
     // Process voting poll QR and show dialog
     private void handleVotingQr(String pollId, String pollQuestion) {
         if (pollId.isEmpty()) {
-            Toast.makeText(this, "⚠️ Invalid voting QR code.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Invalid voting QR code.", Toast.LENGTH_SHORT).show();
             resetScanner();
             return;
         }
 
         if (pbSaving != null) pbSaving.setVisibility(View.VISIBLE);
-        if (tvAttendanceStatus != null) tvAttendanceStatus.setText("⏳ Loading poll...");
+        if (tvAttendanceStatus != null) tvAttendanceStatus.setText("Loading poll...");
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
-            Toast.makeText(this, "❌ Please log in to vote.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Please log in to vote.", Toast.LENGTH_LONG).show();
             resetScanner();
             return;
         }
@@ -356,7 +356,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     if (pbSaving != null) pbSaving.setVisibility(View.GONE);
 
                     if (!pollDoc.exists()) {
-                        Toast.makeText(this, "⚠️ Poll not found.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Poll not found.", Toast.LENGTH_SHORT).show();
                         resetScanner();
                         return;
                     }
@@ -374,7 +374,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     Boolean active = pollDoc.getBoolean("active");
                     if (active != null && !active) {
                         new MaterialAlertDialogBuilder(this)
-                                .setTitle("🔒 Poll Closed")
+                                .setTitle("Poll Closed")
                                 .setMessage("This voting poll is no longer accepting votes.")
                                 .setPositiveButton("OK", (d, w) -> { d.dismiss(); resetScanner(); })
                                 .show();
@@ -391,7 +391,7 @@ public class QRScannerActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     if (pbSaving != null) pbSaving.setVisibility(View.GONE);
-                    Toast.makeText(this, "❌ Failed to load poll: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Failed to load poll: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     resetScanner();
                 });
     }
@@ -402,7 +402,7 @@ public class QRScannerActivity extends AppCompatActivity {
     private void showCastVoteDialog(String pollId, String question, List<String> options,
                                      String uid, FirebaseFirestore db) {
         if (options == null || options.isEmpty()) {
-            Toast.makeText(this, "⚠️ This poll has no options.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "This poll has no available options.", Toast.LENGTH_SHORT).show();
             resetScanner();
             return;
         }
@@ -447,7 +447,7 @@ public class QRScannerActivity extends AppCompatActivity {
                 if (rgOptions == null) return;
                 int selectedId = rgOptions.getCheckedRadioButtonId();
                 if (selectedId == -1) {
-                    Toast.makeText(this, "⚠️ Please select an option first.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Please select an option before submitting.", Toast.LENGTH_SHORT).show();
                     return;
                 }
                 RadioButton selectedRb = dialogView.findViewById(selectedId);
@@ -521,7 +521,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> {
                         if (isFinishing() || isDestroyed()) return;
                         dialog.dismiss();
-                        Toast.makeText(this, "❌ Vote failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Vote failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         resetScanner();
                     });
         });
@@ -529,7 +529,7 @@ public class QRScannerActivity extends AppCompatActivity {
 
     private void showAlreadyVotedDialog(String question) {
         new MaterialAlertDialogBuilder(this)
-                .setTitle("🗳️ Already Voted")
+                .setTitle("Already Voted")
                 .setMessage("You have already cast your vote for:\n\n\"" + question + "\"")
                 .setPositiveButton("OK", (d, w) -> { d.dismiss(); resetScanner(); })
                 .show();
@@ -541,7 +541,7 @@ public class QRScannerActivity extends AppCompatActivity {
     private void showVoteSuccessUI(String chosenOption) {
         if (cardAttendanceVerified != null) cardAttendanceVerified.setVisibility(View.VISIBLE);
 
-        if (tvAttendanceStatus != null)   tvAttendanceStatus.setText("✅ Vote Cast Successfully!");
+        if (tvAttendanceStatus != null)   tvAttendanceStatus.setText("Vote Cast Successfully");
         if (tvEventTitleCard != null)     tvEventTitleCard.setText("Your vote: " + chosenOption);
 
         String currentTime = new SimpleDateFormat("MMM d, yyyy • hh:mm a", Locale.getDefault()).format(new Date());
@@ -549,13 +549,13 @@ public class QRScannerActivity extends AppCompatActivity {
 
         if (tvStudentDetails != null) {
             tvStudentDetails.setVisibility(View.VISIBLE);
-            tvStudentDetails.setText("🎉 Thank you for participating!");
+            tvStudentDetails.setText("Thank you for participating.");
         }
 
         if (btnDone != null)       btnDone.setVisibility(View.VISIBLE);
         if (btnScanAnother != null) btnScanAnother.setVisibility(View.GONE); // No re-scan after voting
 
-        Toast.makeText(this, "🗳️ Your vote has been recorded!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Your vote has been recorded.", Toast.LENGTH_SHORT).show();
     }
 
     // Process event attendance QR and save record
@@ -565,11 +565,11 @@ public class QRScannerActivity extends AppCompatActivity {
      */
     private void saveAttendanceDirectToDatabase(String rawQr, String eventId, String eventName) {
         if (pbSaving != null) pbSaving.setVisibility(View.VISIBLE);
-        if (tvAttendanceStatus != null) tvAttendanceStatus.setText("⏳ Saving attendance to database...");
+        if (tvAttendanceStatus != null) tvAttendanceStatus.setText("Saving attendance to database...");
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
-            Toast.makeText(this, "❌ Error: User not authenticated.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Authentication required. Please log in.", Toast.LENGTH_LONG).show();
             resetScanner();
             return;
         }
@@ -628,7 +628,7 @@ public class QRScannerActivity extends AppCompatActivity {
                     .addOnFailureListener(e -> {
                         if (isFinishing() || isDestroyed()) return;
                         if (pbSaving != null) pbSaving.setVisibility(View.GONE);
-                        Toast.makeText(QRScannerActivity.this, "❌ Database Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(QRScannerActivity.this, "Database error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         resetScanner();
                     });
         });
@@ -637,7 +637,7 @@ public class QRScannerActivity extends AppCompatActivity {
     private void showAttendanceSuccessUI(String eventName, String studentName, String email, String rawQr) {
         if (cardAttendanceVerified != null) cardAttendanceVerified.setVisibility(View.VISIBLE);
 
-        if (tvAttendanceStatus != null)   tvAttendanceStatus.setText("✅ Attendance Verified & Recorded!");
+        if (tvAttendanceStatus != null)   tvAttendanceStatus.setText("Attendance Verified & Recorded");
         if (tvEventTitleCard != null)     tvEventTitleCard.setText("Event: " + eventName);
 
         String currentTime = new SimpleDateFormat("MMM d, yyyy • hh:mm a", Locale.getDefault()).format(new Date());
@@ -651,7 +651,7 @@ public class QRScannerActivity extends AppCompatActivity {
         if (btnDone != null)       btnDone.setVisibility(View.VISIBLE);
         if (btnScanAnother != null) btnScanAnother.setVisibility(View.VISIBLE);
 
-        Toast.makeText(this, "🎉 Attendance recorded directly in database!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Attendance recorded successfully.", Toast.LENGTH_SHORT).show();
     }
 
     // Scanner helper methods

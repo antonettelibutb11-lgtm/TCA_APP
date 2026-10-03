@@ -15,18 +15,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import android.widget.ImageView;
+
 public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.ViewHolder> {
 
-    public interface OnConversationClickListener {
+    public interface OnConversationActionListener {
         void onConversationClick(ChatConversation conversation);
+        void onConversationOptionsClick(ChatConversation conversation, int position, View anchorView);
     }
 
     private final List<ChatConversation> conversationList;
-    private final OnConversationClickListener listener;
+    private final OnConversationActionListener listener;
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM d", Locale.getDefault());
 
-    public AdminInboxAdapter(List<ChatConversation> conversationList, OnConversationClickListener listener) {
+    public AdminInboxAdapter(List<ChatConversation> conversationList, OnConversationActionListener listener) {
         this.conversationList = conversationList;
         this.listener = listener;
     }
@@ -55,6 +58,14 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
         // Student email is kept hidden for student privacy
         if (holder.tvStudentEmail != null) {
             holder.tvStudentEmail.setVisibility(View.GONE);
+        }
+
+        // Badges for Blocked and Archived status
+        if (holder.tvConversationBlockedBadge != null) {
+            holder.tvConversationBlockedBadge.setVisibility(item.isBlocked() ? View.VISIBLE : View.GONE);
+        }
+        if (holder.tvConversationArchivedBadge != null) {
+            holder.tvConversationArchivedBadge.setVisibility(item.isArchived() ? View.VISIBLE : View.GONE);
         }
 
         // Message snippet
@@ -96,6 +107,21 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
                 listener.onConversationClick(item);
             }
         });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            if (listener != null) {
+                listener.onConversationOptionsClick(item, holder.getAdapterPosition(), v);
+            }
+            return true;
+        });
+
+        if (holder.btnConversationMore != null) {
+            holder.btnConversationMore.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onConversationOptionsClick(item, holder.getAdapterPosition(), v);
+                }
+            });
+        }
     }
 
     @Override
@@ -109,8 +135,11 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
         TextView tvStudentInquiryName;
         TextView tvInquiryTimestamp;
         TextView tvStudentEmailBadge;
+        TextView tvConversationBlockedBadge;
+        TextView tvConversationArchivedBadge;
         TextView tvStudentEmail;
         TextView tvInquirySnippet;
+        ImageView btnConversationMore;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -119,8 +148,11 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
             tvStudentInquiryName = itemView.findViewById(R.id.tvStudentInquiryName);
             tvInquiryTimestamp = itemView.findViewById(R.id.tvInquiryTimestamp);
             tvStudentEmailBadge = itemView.findViewById(R.id.tvStudentEmailBadge);
+            tvConversationBlockedBadge = itemView.findViewById(R.id.tvConversationBlockedBadge);
+            tvConversationArchivedBadge = itemView.findViewById(R.id.tvConversationArchivedBadge);
             tvStudentEmail = itemView.findViewById(R.id.tvStudentEmail);
             tvInquirySnippet = itemView.findViewById(R.id.tvInquirySnippet);
+            btnConversationMore = itemView.findViewById(R.id.btnConversationMore);
         }
     }
 }

@@ -34,7 +34,7 @@
                 android:background="#2E1C4E"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:text="🗳️ Vote Setup"
+                android:text="Official Ballot"
                 android:textColor="#C4B5FD"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -98,7 +98,7 @@
             android:focusable="true"
             android:gravity="center"
             android:paddingHorizontal="14dp"
-            android:text="➕ Add Another Option"
+            android:text="+ Add Option"
             android:textColor="@color/purple_primary"
             android:textSize="12.5sp"
             android:textStyle="bold" />

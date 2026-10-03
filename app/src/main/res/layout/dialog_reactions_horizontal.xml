@@ -1,65 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/reactionsContainer"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center"
-    android:background="@drawable/bg_card_white"
-    android:elevation="8dp"
+    android:background="@drawable/bg_reactions_bar_capsule"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:elevation="12dp"
+    android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingHorizontal="14dp"
-    android:paddingVertical="10dp">
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="5dp">
 
+    <!-- 1. Like -->
     <TextView
         android:id="@+id/tvReactLike"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:text="👍"
-        android:textSize="26sp" />
+        android:textSize="28sp" />
 
+    <!-- 2. Love -->
     <TextView
         android:id="@+id/tvReactHeart"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:text="❤️"
-        android:textSize="26sp" />
+        android:textSize="28sp" />
 
+    <!-- 3. Care -->
     <TextView
         android:id="@+id/tvReactCare"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
         android:gravity="center"
-        android:text="🤗"
-        android:textSize="26sp" />
+        android:includeFontPadding="false"
+        android:text="🥰"
+        android:textSize="28sp" />
 
+    <!-- 4. Haha -->
     <TextView
         android:id="@+id/tvReactHaha"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
         android:gravity="center"
-        android:text="😂"
-        android:textSize="26sp" />
+        android:includeFontPadding="false"
+        android:text="😆"
+        android:textSize="28sp" />
 
+    <!-- 5. Wow -->
     <TextView
         android:id="@+id/tvReactWow"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:text="😮"
-        android:textSize="26sp" />
+        android:textSize="28sp" />
 
+    <!-- 6. Sad -->
+    <TextView
+        android:id="@+id/tvReactSad"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="😢"
+        android:textSize="28sp" />
+
+    <!-- 7. Angry -->
     <TextView
         android:id="@+id/tvReactAngry"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="3dp"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:text="😡"
-        android:textSize="26sp" />
+        android:textSize="28sp" />
 
 </LinearLayout>

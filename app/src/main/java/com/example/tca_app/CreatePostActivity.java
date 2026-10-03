@@ -1,15 +1,20 @@
 package com.example.tca_app;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
@@ -199,18 +204,7 @@ public class CreatePostActivity extends AppCompatActivity {
             android.widget.Toast.makeText(this, "Item removed", android.widget.Toast.LENGTH_SHORT).show();
         });
 
-        btnLayoutOptions.setOnClickListener(v -> {
-            String[] options = {"Carousel", "Grid Columns", "List"};
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Select Post Layout")
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) layoutPreference = "carousel";
-                    else if (which == 1) layoutPreference = "grid";
-                    else layoutPreference = "list";
-                    android.widget.Toast.makeText(this, "Layout set to " + options[which], android.widget.Toast.LENGTH_SHORT).show();
-                })
-                .show();
-        });
+        btnLayoutOptions.setOnClickListener(v -> showSelectPostLayoutDialog());
         Spinner spinnerCategory = findViewById(R.id.spinnerCategory);
         SwitchCompat switchPin = findViewById(R.id.switchPin);
         LinearLayout btnUploadPhoto = findViewById(R.id.btnUploadPhoto);
@@ -351,87 +345,145 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void performPreUploadDuplicateCheck(String text, String category, String folderName, boolean isPinned, boolean isFeatured, boolean isAdmin) {
-        Toast.makeText(this, "Analyzing content...", Toast.LENGTH_SHORT).show();
+        // Step 1: Content check for inappropriate / cyber libel words
+        AiDuplicateDetector.ModerationResult inappropriateCheck = AiDuplicateDetector.checkInappropriateContent(text);
+        if (inappropriateCheck.isFlagged) {
+            showDuplicateError("Moderation Flag", inappropriateCheck.detail);
+            return;
+        }
 
-        // Generate media hashes locally on a background thread without downloading posts
+        if (btnPublish != null) {
+            btnPublish.setEnabled(false);
+            btnPublish.setText("AI Analyzing Content...");
+        }
+
+        Toast.makeText(this, "AI analyzing content and media...", Toast.LENGTH_SHORT).show();
+
+        // Step 2: Compute media hashes on background executor without blocking UI
         java.util.concurrent.Executors.newSingleThreadExecutor().execute(() -> {
-            if (selectedMediaUris.isEmpty()) {
-                runOnUiThread(() -> uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, new java.util.ArrayList<>()));
-                return;
-            }
+            List<String> localHashes = new ArrayList<>();
+            List<String> localImageHashes = new ArrayList<>();
+            List<String> localVideoHashes = new ArrayList<>();
 
-            try {
-                java.util.List<String> localHashes = new java.util.ArrayList<>();
-                for (Uri uri : selectedMediaUris) {
+            for (Uri uri : selectedMediaUris) {
+                try {
                     String mimeType = getContentResolver().getType(uri);
                     boolean isVideo = mimeType != null && mimeType.startsWith("video");
-                    
                     java.io.InputStream is = getContentResolver().openInputStream(uri);
                     if (isVideo) {
-                        localHashes.add(AiDuplicateDetector.computeStreamHash(is));
+                        String vidHash = AiDuplicateDetector.computeStreamHash(is);
+                        if (vidHash != null && !vidHash.isEmpty()) {
+                            localHashes.add(vidHash);
+                            localVideoHashes.add(vidHash);
+                        }
                     } else {
-                        // Downscale heavily (inSampleSize = 8) before hashing to prevent OOM
                         android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
                         options.inSampleSize = 8;
                         android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeStream(is, null, options);
-                        localHashes.add(AiDuplicateDetector.computeImageHash(bitmap));
+                        String imgHash = AiDuplicateDetector.computeImageHash(bitmap);
+                        if (imgHash != null && !imgHash.isEmpty()) {
+                            localHashes.add(imgHash);
+                            localImageHashes.add(imgHash);
+                        }
                     }
                     if (is != null) is.close();
+                } catch (Exception e) {
+                    android.util.Log.e("CreatePostActivity", "Hash generation error", e);
                 }
-
-                if (!localHashes.isEmpty()) {
-                    runOnUiThread(() -> {
-                        // Direct Firestore query to check for exact duplicate hashes
-                        db.collection("posts")
-                                .whereArrayContainsAny("mediaHashes", localHashes)
-                                .get()
-                                .addOnSuccessListener(queryDocumentSnapshots -> {
-                                    if (!queryDocumentSnapshots.isEmpty()) {
-                                        java.util.Set<String> duplicateHashes = new java.util.HashSet<>();
-                                        for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
-                                            java.util.List<String> docHashes = (java.util.List<String>) doc.get("mediaHashes");
-                                            if (docHashes != null) {
-                                                duplicateHashes.addAll(docHashes);
-                                            }
-                                        }
-
-                                        java.util.Iterator<Uri> uriIterator = selectedMediaUris.iterator();
-                                        java.util.Iterator<String> hashIterator = localHashes.iterator();
-                                        int removedCount = 0;
-                                        
-                                        while (uriIterator.hasNext() && hashIterator.hasNext()) {
-                                            uriIterator.next();
-                                            String hash = hashIterator.next();
-                                            if (duplicateHashes.contains(hash)) {
-                                                uriIterator.remove();
-                                                hashIterator.remove();
-                                                removedCount++;
-                                            }
-                                        }
-
-                                        if (removedCount > 0) {
-                                            String msg = "Removed " + removedCount + " duplicate image(s).";
-                                            Toast.makeText(CreatePostActivity.this, msg, Toast.LENGTH_LONG).show();
-                                        }
-                                        
-                                        // Proceed with publishing the remaining media and text
-                                        uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, localHashes);
-                                    } else {
-                                        uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, localHashes);
-                                    }
-                                })
-                                .addOnFailureListener(e -> {
-                                    uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, localHashes);
-                                });
-                    });
-                } else {
-                    runOnUiThread(() -> uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, localHashes));
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, new java.util.ArrayList<>()));
             }
+
+            // Step 3: Fetch recent posts from Firestore to cross-reference duplicates
+            db.collection("posts")
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(100)
+                    .get()
+                    .addOnCompleteListener(task -> {
+                        boolean duplicateFound = false;
+                        String detectedReason = "";
+
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            List<com.google.firebase.firestore.DocumentSnapshot> docs = task.getResult().getDocuments();
+
+                            // A. Check Text / Caption Duplicate
+                            if (text != null && !text.trim().isEmpty()) {
+                                List<String> existingCaptions = new ArrayList<>();
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
+                                    String c = doc.getString("content");
+                                    if (c != null && !c.trim().isEmpty()) {
+                                        existingCaptions.add(c);
+                                    }
+                                }
+                                AiDuplicateDetector.ModerationResult textResult = AiDuplicateDetector.checkTextDuplicate(text, existingCaptions);
+                                if (textResult.isFlagged) {
+                                    duplicateFound = true;
+                                    detectedReason = "Duplicate Post: " + textResult.detail;
+                                }
+                            }
+
+                            // B. Check Image / Picture Duplicate
+                            if (!duplicateFound && !localImageHashes.isEmpty()) {
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
+                                    @SuppressWarnings("unchecked")
+                                    List<String> docHashes = (List<String>) doc.get("mediaHashes");
+                                    String docImageHash = doc.getString("imageHash");
+
+                                    for (String localImgHash : localImageHashes) {
+                                        if (docHashes != null && docHashes.contains(localImgHash)) {
+                                            duplicateFound = true;
+                                            detectedReason = "Duplicate Picture: Photo matches a previously uploaded image.";
+                                            break;
+                                        }
+                                        if (docImageHash != null && !docImageHash.isEmpty()) {
+                                            if (AiDuplicateDetector.compareImageHashes(localImgHash, docImageHash) >= 90) {
+                                                duplicateFound = true;
+                                                detectedReason = "Duplicate Picture: Photo matches an existing post with high visual similarity.";
+                                                break;
+                                            }
+                                        }
+                                        if (docHashes != null) {
+                                            for (String dh : docHashes) {
+                                                if (dh != null && dh.length() == 64) {
+                                                    if (AiDuplicateDetector.compareImageHashes(localImgHash, dh) >= 90) {
+                                                        duplicateFound = true;
+                                                        detectedReason = "Duplicate Picture: Photo matches an existing post with high visual similarity.";
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (duplicateFound) break;
+                                    }
+                                    if (duplicateFound) break;
+                                }
+                            }
+
+                            // C. Check Video Duplicate
+                            if (!duplicateFound && !localVideoHashes.isEmpty()) {
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : docs) {
+                                    @SuppressWarnings("unchecked")
+                                    List<String> docHashes = (List<String>) doc.get("mediaHashes");
+                                    for (String localVidHash : localVideoHashes) {
+                                        if (docHashes != null && docHashes.contains(localVidHash)) {
+                                            duplicateFound = true;
+                                            detectedReason = "Duplicate Video: Video stream matches a previously uploaded video.";
+                                            break;
+                                        }
+                                    }
+                                    if (duplicateFound) break;
+                                }
+                            }
+                        }
+
+                        final boolean finalIsDuplicate = duplicateFound;
+                        final String finalReason = detectedReason;
+
+                        runOnUiThread(() -> {
+                            if (btnPublish != null) {
+                                btnPublish.setText(finalIsDuplicate ? "Submitting to Moderation..." : "Publishing Post...");
+                            }
+                            uploadMediaAndPublishPost(text, category, folderName, isPinned, isFeatured, isAdmin, localHashes, finalIsDuplicate, finalReason);
+                        });
+                    });
         });
     }
     private void showDuplicateError(String title, String message) {
@@ -448,9 +500,11 @@ public class CreatePostActivity extends AppCompatActivity {
         }
     }
 
-    private void uploadMediaAndPublishPost(String text, String category, String customFolderName, boolean isPinned, boolean isFeatured, boolean isAdmin, List<String> localHashes) {
-        String toastMsg = selectedMediaUris.isEmpty() ? "Publishing post..." : "Uploading media and publishing post...";
-        Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
+    private void uploadMediaAndPublishPost(String text, String category, String customFolderName, boolean isPinned,
+                                          boolean isFeatured, boolean isAdmin, List<String> localHashes,
+                                          boolean isDuplicate, String duplicateReason) {
+        String toastMsg = selectedMediaUris.isEmpty() ? "Processing post..." : "Uploading media and publishing post...";
+        Toast.makeText(this, toastMsg, Toast.LENGTH_SHORT).show();
 
         List<Task<String>> mediaTasks = new ArrayList<>();
 
@@ -485,7 +539,7 @@ public class CreatePostActivity extends AppCompatActivity {
                         }
                         
                         String docUrl = (docTask.isSuccessful() && docTask.getResult() != null) ? docTask.getResult() : "";
-                        savePostDocumentToFirestore(text, category, customFolderName, isPinned, isFeatured, uploadedMediaUris, docUrl, isAdmin, localHashes);
+                        savePostDocumentToFirestore(text, category, customFolderName, isPinned, isFeatured, uploadedMediaUris, docUrl, isAdmin, localHashes, isDuplicate, duplicateReason);
                     }
                 });
     }
@@ -532,15 +586,20 @@ public class CreatePostActivity extends AppCompatActivity {
         return tcs.getTask();
     }
 
-    private void savePostDocumentToFirestore(String text, String category, String customFolderName, boolean isPinned, boolean isFeatured, List<String> uploadedMediaUris, String docUrl, boolean isAdmin, List<String> localHashes) {
+    private void savePostDocumentToFirestore(String text, String category, String customFolderName, boolean isPinned,
+                                             boolean isFeatured, List<String> uploadedMediaUris, String docUrl,
+                                             boolean isAdmin, List<String> localHashes, boolean isDuplicate,
+                                             String duplicateReason) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         
-        // --- NEW PRIVACY UPDATE: Use Display Name instead of Email ---
-        String author = "BISU Student";
+        // --- PRIVACY UPDATE: Use Display Name instead of Email ---
+        final String author;
         if (isAdmin) {
             author = "The Campus Access";
         } else if (currentUser != null && currentUser.getDisplayName() != null && !currentUser.getDisplayName().trim().isEmpty()) {
             author = currentUser.getDisplayName();
+        } else {
+            author = "BISU Student";
         }
         
         String authorUid = (currentUser != null) ? currentUser.getUid() : "";
@@ -586,36 +645,77 @@ public class CreatePostActivity extends AppCompatActivity {
             }
         }
         postMap.put("docUri", docUrl);
-        postMap.put("imageHash", ""); // Cloud Functions will compute and index hashes on server
+        postMap.put("imageHash", ""); // Server hash indexing fallback
         // Set scheduled timestamp or current time for feed sorting
         long finalScheduledTimestamp = scheduledTimestamp > 0 ? scheduledTimestamp : System.currentTimeMillis();
         postMap.put("scheduledTimestamp", finalScheduledTimestamp);
         postMap.put("likeCount", 0);
         postMap.put("loveCount", 0);
         postMap.put("commentCount", 0);
-        postMap.put("moderationStatus", "PENDING"); // Submitted as PENDING; Cloud Function handles backend AI moderation & approval
-        postMap.put("timestamp", System.currentTimeMillis());
 
+        if (isDuplicate) {
+            postMap.put("moderationStatus", "FLAGGED");
+            postMap.put("isDuplicate", true);
+            postMap.put("flaggedReason", duplicateReason != null && !duplicateReason.isEmpty() ? duplicateReason : "AI Duplicate Content Detection");
+            postMap.put("aiScore", "98%");
+        } else {
+            postMap.put("moderationStatus", "APPROVED");
+            postMap.put("isDuplicate", false);
+        }
+
+        postMap.put("timestamp", System.currentTimeMillis());
         postMap.put("mediaHashes", localHashes);
         postMap.put("layoutPreference", layoutPreference);
 
         db.collection("posts").add(postMap)
         .addOnSuccessListener(documentReference -> {
             if (!isFinishing() && !isDestroyed()) {
-                if (btnPublish != null) btnPublish.setEnabled(true);
-                String msg = scheduledTimestamp > 0
-                        ? "Post scheduled successfully."
-                        : "Post submitted successfully.";
-                Toast.makeText(CreatePostActivity.this, msg, Toast.LENGTH_LONG).show();
-                
-                // Increment postCount in the users collection
-                if (authorUid != null && !authorUid.isEmpty()) {
-                    db.collection("users").document(authorUid)
-                        .update("postCount", com.google.firebase.firestore.FieldValue.increment(1))
-                        .addOnFailureListener(e -> android.util.Log.e("CreatePostActivity", "Failed to update postCount", e));
+                if (btnPublish != null) {
+                    btnPublish.setEnabled(true);
+                    btnPublish.setText("Publish Post");
                 }
-                
-                finish();
+
+                if (isDuplicate) {
+                    // Send to moderation_queue for administrator editorial review
+                    String newPostId = documentReference.getId();
+                    Map<String, Object> queueItem = new HashMap<>();
+                    queueItem.put("postId", newPostId);
+                    queueItem.put("authorName", author);
+                    queueItem.put("authorUid", authorUid);
+                    queueItem.put("content", text);
+                    queueItem.put("reason", duplicateReason != null && !duplicateReason.isEmpty() ? duplicateReason : "Duplicate Content / Media Detection");
+                    queueItem.put("aiScore", "98%");
+                    queueItem.put("status", "PENDING");
+                    queueItem.put("moderationStatus", "PENDING");
+                    queueItem.put("mediaUris", uploadedMediaUris);
+                    queueItem.put("timestamp", System.currentTimeMillis());
+
+                    db.collection("moderation_queue").add(queueItem)
+                            .addOnCompleteListener(qTask -> {
+                                if (!isFinishing() && !isDestroyed()) {
+                                    new androidx.appcompat.app.AlertDialog.Builder(CreatePostActivity.this)
+                                            .setTitle("🛡️ AI Duplicate Detection")
+                                            .setMessage("Nadiskubrehan sa AI nga kining gi-post (o ang hulagway/video) kay gibalik-balik na og post kaniadto.\n\nGi-forward kini sa Moderation Queue para sa pagsusi sa mga administrators. Mawala kini sa queue kung ma-approved na sa admin, ug awtomatiko dayon kining mopakita sa feed.")
+                                            .setPositiveButton("Sige / Understood", (dialog, which) -> finish())
+                                            .setCancelable(false)
+                                            .show();
+                                }
+                            });
+                } else {
+                    String msg = scheduledTimestamp > 0
+                            ? "Post scheduled successfully."
+                            : "Post submitted successfully.";
+                    Toast.makeText(CreatePostActivity.this, msg, Toast.LENGTH_LONG).show();
+                    
+                    // Increment postCount in the users collection
+                    if (authorUid != null && !authorUid.isEmpty()) {
+                        db.collection("users").document(authorUid)
+                            .update("postCount", com.google.firebase.firestore.FieldValue.increment(1))
+                            .addOnFailureListener(e -> android.util.Log.e("CreatePostActivity", "Failed to update postCount", e));
+                    }
+                    
+                    finish();
+                }
             }
         })
         .addOnFailureListener(e -> {
@@ -627,6 +727,95 @@ public class CreatePostActivity extends AppCompatActivity {
                 Toast.makeText(CreatePostActivity.this, "Error submitting post: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void showSelectPostLayoutDialog() {
+        View currentFocus = getCurrentFocus();
+        if (currentFocus != null) {
+            android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+            }
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_select_post_layout, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        View cardCarousel = dialogView.findViewById(R.id.cardLayoutCarousel);
+        View cardGrid = dialogView.findViewById(R.id.cardLayoutGrid);
+        View cardList = dialogView.findViewById(R.id.cardLayoutList);
+
+        TextView tvTitleCarousel = dialogView.findViewById(R.id.tvTitleCarousel);
+        TextView tvTitleGrid = dialogView.findViewById(R.id.tvTitleGrid);
+        TextView tvTitleList = dialogView.findViewById(R.id.tvTitleList);
+
+        ImageView ivCheckCarousel = dialogView.findViewById(R.id.ivCheckCarousel);
+        ImageView ivCheckGrid = dialogView.findViewById(R.id.ivCheckGrid);
+        ImageView ivCheckList = dialogView.findViewById(R.id.ivCheckList);
+
+        Button btnCancel = dialogView.findViewById(R.id.btnCancelLayoutDialog);
+        Button btnApply = dialogView.findViewById(R.id.btnApplyLayoutDialog);
+
+        final String[] tempSelected = {
+                (layoutPreference != null && !layoutPreference.isEmpty()) ? layoutPreference : "carousel"
+        };
+
+        Runnable updateSelectionUI = () -> {
+            boolean isCarousel = "carousel".equalsIgnoreCase(tempSelected[0]);
+            boolean isGrid = "grid".equalsIgnoreCase(tempSelected[0]);
+            boolean isList = "list".equalsIgnoreCase(tempSelected[0]);
+
+            cardCarousel.setBackgroundResource(isCarousel ? R.drawable.bg_card_selected_border : R.drawable.bg_card_unselected_border);
+            cardGrid.setBackgroundResource(isGrid ? R.drawable.bg_card_selected_border : R.drawable.bg_card_unselected_border);
+            cardList.setBackgroundResource(isList ? R.drawable.bg_card_selected_border : R.drawable.bg_card_unselected_border);
+
+            tvTitleCarousel.setTextColor(getResources().getColor(isCarousel ? R.color.purple_primary : R.color.text_primary, null));
+            tvTitleGrid.setTextColor(getResources().getColor(isGrid ? R.color.purple_primary : R.color.text_primary, null));
+            tvTitleList.setTextColor(getResources().getColor(isList ? R.color.purple_primary : R.color.text_primary, null));
+
+            ivCheckCarousel.setVisibility(isCarousel ? View.VISIBLE : View.GONE);
+            ivCheckGrid.setVisibility(isGrid ? View.VISIBLE : View.GONE);
+            ivCheckList.setVisibility(isList ? View.VISIBLE : View.GONE);
+        };
+
+        updateSelectionUI.run();
+
+        cardCarousel.setOnClickListener(v -> {
+            tempSelected[0] = "carousel";
+            updateSelectionUI.run();
+        });
+
+        cardGrid.setOnClickListener(v -> {
+            tempSelected[0] = "grid";
+            updateSelectionUI.run();
+        });
+
+        cardList.setOnClickListener(v -> {
+            tempSelected[0] = "list";
+            updateSelectionUI.run();
+        });
+
+        if (btnCancel != null) {
+            btnCancel.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        if (btnApply != null) {
+            btnApply.setOnClickListener(v -> {
+                layoutPreference = tempSelected[0];
+                String displayTitle = "carousel".equalsIgnoreCase(layoutPreference) ? "Swipe Carousel" :
+                        "grid".equalsIgnoreCase(layoutPreference) ? "Grid Columns" : "Stacked List";
+                Toast.makeText(this, "Media layout set to " + displayTitle, Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            });
+        }
+
+        dialog.show();
     }
 
     @Override

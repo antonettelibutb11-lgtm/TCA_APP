@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import com.bumptech.glide.Glide;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
@@ -62,6 +63,11 @@ public class EditorialChartActivity extends AppCompatActivity {
     private ImageView newMemberPhotoPreview = null;
     private TextView newMemberInitialsPreview = null;
 
+    private EditorialMember activeEditMember = null;
+    private ImageView activeEditPhotoPreview = null;
+    private TextView activeEditInitialsPreview = null;
+    private TextView activeEditPhotoSubtitle = null;
+
     private EditorialMember selectedMemberForPhoto = null;
     private File tempCameraFile;
     private Uri tempCameraUri;
@@ -77,7 +83,7 @@ public class EditorialChartActivity extends AppCompatActivity {
                         newMemberPhotoFile = null;
                         if (newMemberPhotoPreview != null) {
                             newMemberPhotoPreview.setVisibility(View.VISIBLE);
-                            newMemberPhotoPreview.setImageURI(uri);
+                            Glide.with(this).load(uri).circleCrop().into(newMemberPhotoPreview);
                         }
                         if (newMemberInitialsPreview != null) {
                             newMemberInitialsPreview.setVisibility(View.GONE);
@@ -98,7 +104,7 @@ public class EditorialChartActivity extends AppCompatActivity {
                         newMemberPhotoFile = tempCameraFile;
                         if (newMemberPhotoPreview != null) {
                             newMemberPhotoPreview.setVisibility(View.VISIBLE);
-                            newMemberPhotoPreview.setImageURI(tempCameraUri);
+                            Glide.with(this).load(tempCameraUri).circleCrop().into(newMemberPhotoPreview);
                         }
                         if (newMemberInitialsPreview != null) {
                             newMemberInitialsPreview.setVisibility(View.GONE);
@@ -265,15 +271,69 @@ public class EditorialChartActivity extends AppCompatActivity {
         selectedMemberForPhoto = member;
         isPickingForNewMember = false;
 
-        String[] options = new String[]{"Choose from Gallery", "Take a Photo with Camera"};
+        boolean hasPhoto = member.getPhotoUrl() != null && !member.getPhotoUrl().trim().isEmpty();
+
+        List<String> options = new ArrayList<>();
+        if (hasPhoto) {
+            options.add("View Whole Picture");
+        }
+        options.add("Choose from Gallery");
+        options.add("Take a Photo with Camera");
+        if (hasPhoto) {
+            options.add("Remove Photo");
+        }
+
+        String[] optionsArray = options.toArray(new String[0]);
         new AlertDialog.Builder(this)
-                .setTitle("Update Photo: " + member.getName())
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
+                .setTitle("Photo: " + member.getName())
+                .setItems(optionsArray, (dialog, which) -> {
+                    String selected = optionsArray[which];
+                    if ("View Whole Picture".equals(selected)) {
+                        Intent intent = new Intent(this, FullScreenImageActivity.class);
+                        intent.putExtra("photoUri", member.getPhotoUrl());
+                        startActivity(intent);
+                    } else if ("Choose from Gallery".equals(selected)) {
                         galleryLauncher.launch("image/*");
-                    } else {
+                    } else if ("Take a Photo with Camera".equals(selected)) {
                         launchCamera();
+                    } else if ("Remove Photo".equals(selected)) {
+                        confirmRemovePhoto(member);
                     }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void confirmRemovePhoto(EditorialMember member) {
+        new AlertDialog.Builder(this)
+                .setTitle("Remove Photo")
+                .setMessage("Are you sure you want to remove the photo for " + member.getName() + "?")
+                .setPositiveButton("Remove", (d, w) -> {
+                    Toast.makeText(this, "Removing photo...", Toast.LENGTH_SHORT).show();
+                    EditorialMemberRepository.updateMemberPhoto(this, member.getId(), "", new EditorialMemberRepository.MemberUpdateCallback() {
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> {
+                                member.setPhotoUrl("");
+                                adapter.notifyDataSetChanged();
+                                if (activeEditMember != null && activeEditMember.getId().equals(member.getId())) {
+                                    if (activeEditPhotoPreview != null) activeEditPhotoPreview.setVisibility(View.GONE);
+                                    if (activeEditInitialsPreview != null) {
+                                        activeEditInitialsPreview.setVisibility(View.VISIBLE);
+                                        String initial = !member.getName().isEmpty() ? member.getName().substring(0, 1).toUpperCase(Locale.getDefault()) : "?";
+                                        activeEditInitialsPreview.setText(initial);
+                                    }
+                                    if (activeEditPhotoSubtitle != null) activeEditPhotoSubtitle.setText("Tap to set photo (Optional)");
+                                }
+                                Toast.makeText(EditorialChartActivity.this, "Photo removed successfully.", Toast.LENGTH_SHORT).show();
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(String error) {
+                            runOnUiThread(() -> Toast.makeText(EditorialChartActivity.this, "Failed to remove photo: " + error, Toast.LENGTH_SHORT).show());
+                        }
+                    });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -417,23 +477,63 @@ public class EditorialChartActivity extends AppCompatActivity {
     private void showEditMemberDialog(EditorialMember member) {
         if (!isUserAdmin) return;
 
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        builder.setTitle("Edit Member Info");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
-        android.view.View dialogLayout = getLayoutInflater().inflate(R.layout.dialog_add_editorial_member, null);
+        View dialogLayout = getLayoutInflater().inflate(R.layout.dialog_add_editorial_member, null);
         builder.setView(dialogLayout);
 
-        // Reuse the add-member dialog layout fields
-        android.widget.EditText etName = dialogLayout.findViewById(R.id.etNewMemberName);
-        android.widget.Spinner spinnerDept = dialogLayout.findViewById(R.id.spinnerNewMemberDept);
-        android.widget.EditText etRole = dialogLayout.findViewById(R.id.etNewMemberRole);
-        android.widget.TextView btnCancel = dialogLayout.findViewById(R.id.btnCancelAddMember);
-        android.widget.TextView btnSubmit = dialogLayout.findViewById(R.id.btnSubmitAddMember);
-        android.widget.ProgressBar pb = dialogLayout.findViewById(R.id.pbAddMemberLoading);
+        TextView tvTitle = dialogLayout.findViewById(R.id.tvAddMemberDialogTitle);
+        TextView tvSubtitle = dialogLayout.findViewById(R.id.tvAddMemberDialogSubtitle);
+        if (tvTitle != null) tvTitle.setText("Edit Member Info");
+        if (tvSubtitle != null) tvSubtitle.setText("Update staff details & member photo");
 
-        // Hide photo picker section (not needed for edit)
-        android.view.View btnPickPhoto = dialogLayout.findViewById(R.id.btnPickNewMemberPhoto);
-        if (btnPickPhoto != null) btnPickPhoto.setVisibility(android.view.View.GONE);
+        // Fields
+        EditText etName = dialogLayout.findViewById(R.id.etNewMemberName);
+        android.widget.Spinner spinnerDept = dialogLayout.findViewById(R.id.spinnerNewMemberDept);
+        EditText etRole = dialogLayout.findViewById(R.id.etNewMemberRole);
+        TextView btnCancel = dialogLayout.findViewById(R.id.btnCancelAddMember);
+        TextView btnSubmit = dialogLayout.findViewById(R.id.btnSubmitAddMember);
+        ProgressBar pb = dialogLayout.findViewById(R.id.pbAddMemberLoading);
+
+        // Circular photo preview & subtitle
+        View btnPickPhoto = dialogLayout.findViewById(R.id.btnPickNewMemberPhoto);
+        ImageView ivPhotoPreview = dialogLayout.findViewById(R.id.ivNewMemberPhotoPreview);
+        TextView tvInitialsPreview = dialogLayout.findViewById(R.id.tvNewMemberInitialsPreview);
+        TextView tvPhotoSubtitle = dialogLayout.findViewById(R.id.tvMemberPhotoSubtitle);
+
+        activeEditMember = member;
+        activeEditPhotoPreview = ivPhotoPreview;
+        activeEditInitialsPreview = tvInitialsPreview;
+        activeEditPhotoSubtitle = tvPhotoSubtitle;
+
+        // Show circular photo if available, or letter initials
+        String photoUrl = member.getPhotoUrl();
+        if (photoUrl != null && !photoUrl.trim().isEmpty()) {
+            if (ivPhotoPreview != null) {
+                ivPhotoPreview.setVisibility(View.VISIBLE);
+                Glide.with(this)
+                        .load(photoUrl)
+                        .circleCrop()
+                        .placeholder(R.drawable.bg_icon_circle_purple)
+                        .into(ivPhotoPreview);
+            }
+            if (tvInitialsPreview != null) tvInitialsPreview.setVisibility(View.GONE);
+            if (tvPhotoSubtitle != null) tvPhotoSubtitle.setText("Tap photo to view or update");
+        } else {
+            if (ivPhotoPreview != null) ivPhotoPreview.setVisibility(View.GONE);
+            if (tvInitialsPreview != null) {
+                tvInitialsPreview.setVisibility(View.VISIBLE);
+                String initial = (!member.getName().isEmpty()) ? member.getName().substring(0, 1).toUpperCase(Locale.getDefault()) : "?";
+                tvInitialsPreview.setText(initial);
+            }
+            if (tvPhotoSubtitle != null) tvPhotoSubtitle.setText("Tap to set photo (Optional)");
+        }
+
+        // Keep photo circle clickable to view whole picture or change
+        if (btnPickPhoto != null) {
+            btnPickPhoto.setVisibility(View.VISIBLE);
+            btnPickPhoto.setOnClickListener(v -> showPhotoChangeDialog(member));
+        }
 
         // Pre-fill current values
         etName.setText(member.getName());
@@ -457,10 +557,19 @@ public class EditorialChartActivity extends AppCompatActivity {
             }
         }
 
-        android.app.AlertDialog editDialog = builder.create();
+        AlertDialog editDialog = builder.create();
         if (editDialog.getWindow() != null) {
             editDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
+
+        editDialog.setOnDismissListener(d -> {
+            if (activeEditMember == member) {
+                activeEditMember = null;
+                activeEditPhotoPreview = null;
+                activeEditInitialsPreview = null;
+                activeEditPhotoSubtitle = null;
+            }
+        });
 
         btnCancel.setOnClickListener(v -> editDialog.dismiss());
         btnSubmit.setOnClickListener(v -> {
@@ -479,7 +588,7 @@ public class EditorialChartActivity extends AppCompatActivity {
                 return;
             }
 
-            pb.setVisibility(android.view.View.VISIBLE);
+            pb.setVisibility(View.VISIBLE);
             btnSubmit.setEnabled(false);
             btnCancel.setEnabled(false);
 
@@ -503,7 +612,7 @@ public class EditorialChartActivity extends AppCompatActivity {
                         @Override
                         public void onFailure(String error) {
                             runOnUiThread(() -> {
-                                pb.setVisibility(android.view.View.GONE);
+                                pb.setVisibility(View.GONE);
                                 btnSubmit.setEnabled(true);
                                 btnCancel.setEnabled(true);
                                 Toast.makeText(EditorialChartActivity.this, "Update failed: " + error, Toast.LENGTH_SHORT).show();
@@ -594,6 +703,25 @@ public class EditorialChartActivity extends AppCompatActivity {
                                 public void onSuccess() {
                                     target.setPhotoUrl(secureUrl);
                                     adapter.notifyDataSetChanged();
+
+                                    // If edit dialog is currently open for this member, refresh the circular photo immediately!
+                                    if (activeEditMember != null && activeEditMember.getId().equals(target.getId())) {
+                                        if (activeEditPhotoPreview != null) {
+                                            activeEditPhotoPreview.setVisibility(View.VISIBLE);
+                                            Glide.with(EditorialChartActivity.this)
+                                                    .load(secureUrl)
+                                                    .circleCrop()
+                                                    .placeholder(R.drawable.bg_icon_circle_purple)
+                                                    .into(activeEditPhotoPreview);
+                                        }
+                                        if (activeEditInitialsPreview != null) {
+                                            activeEditInitialsPreview.setVisibility(View.GONE);
+                                        }
+                                        if (activeEditPhotoSubtitle != null) {
+                                            activeEditPhotoSubtitle.setText("Tap photo to view or update");
+                                        }
+                                    }
+
                                     Toast.makeText(EditorialChartActivity.this, "Photo updated for " + target.getName() + "!", Toast.LENGTH_SHORT).show();
                                 }
 

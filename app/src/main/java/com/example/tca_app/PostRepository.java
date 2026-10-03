@@ -210,9 +210,9 @@ public class PostRepository {
         Map<String, Object> repostMap = new HashMap<>();
         repostMap.put("authorName", name);
         repostMap.put("authorUid", currentUser.getUid());
-        repostMap.put("postMeta", "Just now • 🔁 Reposted from " + originalPost.getAuthorName());
+        repostMap.put("postMeta", "Just now • Reposted from " + originalPost.getAuthorName());
         repostMap.put("content", originalPost.getContent());
-        repostMap.put("badgeText", "🔁 Repost");
+        repostMap.put("badgeText", "Repost");
         repostMap.put("category", isNullOrEmpty(originalPost.getCategory()) ? "General" : originalPost.getCategory());
         repostMap.put("isPinned", false);
         repostMap.put("isAiPick", false);

@@ -382,14 +382,55 @@ public class AiDuplicateDetector {
         return new ModerationResult(false, null, "Video is unique.", 0);
     }
 
+    public static ModerationResult checkTextDuplicate(String newContent, List<String> existingContents) {
+        if (newContent == null || newContent.trim().isEmpty() || existingContents == null || existingContents.isEmpty()) {
+            return new ModerationResult(false, null, "Text is unique.", 0);
+        }
+
+        String normalizedNew = normalizeText(newContent);
+        if (normalizedNew.isEmpty()) {
+            return new ModerationResult(false, null, "Text is unique.", 0);
+        }
+        Set<String> newWords = extractWords(normalizedNew);
+
+        for (String existing : existingContents) {
+            if (existing == null || existing.trim().isEmpty()) continue;
+            String normalizedExisting = normalizeText(existing);
+            if (normalizedExisting.isEmpty()) continue;
+
+            // Check exact or near-exact match
+            if (normalizedNew.equals(normalizedExisting)) {
+                return new ModerationResult(
+                        true,
+                        "DUPLICATE_TEXT",
+                        "Duplicate post content (100% exact match with an existing post).",
+                        100
+                );
+            }
+
+            Set<String> existingWords = extractWords(normalizedExisting);
+            int similarity = calculateJaccardSimilarity(newWords, existingWords);
+
+            if (similarity >= 70) {
+                return new ModerationResult(
+                        true,
+                        "DUPLICATE_TEXT",
+                        "Duplicate post content (" + similarity + "% match with an existing post).",
+                        similarity
+                );
+            }
+        }
+        return new ModerationResult(false, null, "Text is unique.", 0);
+    }
+
     // Helper string functions
 
-    private static String normalizeText(String text) {
+    public static String normalizeText(String text) {
         if (text == null) return "";
         return text.toLowerCase().replaceAll("[^a-zA-Z0-9\\s]", "").trim();
     }
 
-    private static Set<String> extractWords(String text) {
+    public static Set<String> extractWords(String text) {
         Set<String> set = new HashSet<>();
         String[] tokens = text.split("\\s+");
         for (String token : tokens) {
@@ -398,7 +439,7 @@ public class AiDuplicateDetector {
         return set;
     }
 
-    private static int calculateJaccardSimilarity(Set<String> set1, Set<String> set2) {
+    public static int calculateJaccardSimilarity(Set<String> set1, Set<String> set2) {
         if (set1.isEmpty() || set2.isEmpty()) return 0;
 
         Set<String> intersection = new HashSet<>(set1);

@@ -100,6 +100,34 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvConversationBlockedBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_button_red"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="BLOCKED"
+                    android:textColor="@color/white"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvConversationArchivedBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_chip_unselected"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="ARCHIVED"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/tvStudentEmail"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -126,11 +154,16 @@
         </LinearLayout>
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginStart="6dp"
-            android:contentDescription="Open Conversation"
-            android:src="@drawable/ic_chevron_right"
+            android:id="@+id/btnConversationMore"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="Conversation Options"
+            android:focusable="true"
+            android:padding="5dp"
+            android:src="@drawable/ic_more_vert"
             app:tint="@color/text_muted" />
 
     </LinearLayout>

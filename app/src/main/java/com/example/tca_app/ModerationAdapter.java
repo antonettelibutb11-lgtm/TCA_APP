@@ -99,24 +99,33 @@ public class ModerationAdapter extends RecyclerView.Adapter<ModerationAdapter.Mo
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         com.google.firebase.firestore.WriteBatch batch = db.batch();
         
-        if ("APPROVE".equals(action) || "NONE".equals(action)) {
+        if (moderationId != null && !moderationId.trim().isEmpty()) {
             batch.delete(db.collection("moderation_queue").document(moderationId));
-            batch.update(db.collection("posts").document(postId), "moderationStatus", "APPROVED");
-        } else if ("DELETE".equals(action) || "REMOVE".equals(action)) {
-            batch.update(db.collection("moderation_queue").document(moderationId), "status", "RESOLVED");
-            batch.update(db.collection("posts").document(postId), "moderationStatus", "DELETED");
-        } else if ("WARN".equals(action)) {
-            batch.update(db.collection("moderation_queue").document(moderationId), "status", "RESOLVED");
-            batch.update(db.collection("posts").document(postId), "moderationStatus", "FLAGGED");
+        }
+
+        if (postId != null && !postId.trim().isEmpty()) {
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            if ("APPROVE".equals(action) || "NONE".equals(action)) {
+                updates.put("moderationStatus", "APPROVED");
+                updates.put("status", "APPROVED");
+                updates.put("isDuplicate", false);
+                batch.set(db.collection("posts").document(postId), updates, com.google.firebase.firestore.SetOptions.merge());
+            } else if ("DELETE".equals(action) || "REMOVE".equals(action)) {
+                batch.delete(db.collection("posts").document(postId));
+            } else if ("WARN".equals(action)) {
+                updates.put("moderationStatus", "FLAGGED");
+                updates.put("status", "FLAGGED");
+                batch.set(db.collection("posts").document(postId), updates, com.google.firebase.firestore.SetOptions.merge());
+            }
         }
         
         batch.commit()
                 .addOnSuccessListener(v -> {
-                    Toast.makeText(context, "✅ Moderation action '" + action + "' processed.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "Moderation action '" + action + "' processed.", Toast.LENGTH_SHORT).show();
                     if (onSuccess != null) onSuccess.run();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(context, "❌ Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(context, "Action failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     if (onFailure != null) onFailure.run();
                 });
     }

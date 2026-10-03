@@ -70,6 +70,10 @@ private PostViewModel postViewModel;
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
 
         if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setColorSchemeColors(
+                    getResources().getColor(R.color.purple_primary),
+                    getResources().getColor(R.color.gold_accent)
+            );
             swipeRefreshLayout.setOnRefreshListener(() -> {
                 listenToFirebasePosts();
             });
@@ -292,6 +296,7 @@ postViewModel.startListening(selectedCategory);
             }
 
             List<Post> firebasePosts = new ArrayList<>();
+            java.util.Set<String> seenPostKeys = new java.util.HashSet<>();
             if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
                 for (DocumentSnapshot doc : queryDocumentSnapshots) {
                     String category = doc.getString("category");
@@ -327,12 +332,25 @@ postViewModel.startListening(selectedCategory);
                     }
 
                     String moderationStatus = doc.getString("moderationStatus");
-                    if ("DELETED".equals(moderationStatus) || "FLAGGED".equals(moderationStatus) || "ARCHIVED".equals(moderationStatus)) {
+                    Boolean isDuplicate = doc.getBoolean("isDuplicate");
+                    if ("DELETED".equals(moderationStatus) || "FLAGGED".equals(moderationStatus)
+                            || "ARCHIVED".equals(moderationStatus) || "PENDING".equals(moderationStatus)
+                            || (Boolean.TRUE.equals(isDuplicate) && !"APPROVED".equals(moderationStatus))) {
                         continue;
                     }
 
-                    // scheduledTimestamp filtering is now handled server-side via the Firestore query.
-                    // No client-side date filtering needed here.
+                    // Duplicate filter: Prevents identical repeated posts from showing twice on the hub feed
+                    String textKey = content != null ? content.trim().toLowerCase(java.util.Locale.ROOT) : "";
+                    String photoKey = photoUri != null ? photoUri.trim() : "";
+                    String videoKey = videoUri != null ? videoUri.trim() : "";
+                    String postSignature = textKey + "||" + photoKey + "||" + videoKey;
+                    if (!textKey.isEmpty() || !photoKey.isEmpty() || !videoKey.isEmpty()) {
+                        if (seenPostKeys.contains(postSignature)) {
+                            // Repeated post detected — skip duplicate from displaying on feed
+                            continue;
+                        }
+                        seenPostKeys.add(postSignature);
+                    }
 
                     if (timestamp == null || timestamp == 0) {
                         timestamp = now;

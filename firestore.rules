@@ -8,79 +8,160 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Staff' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'STAFF'))
+      );
+    }
+
     // 1. Users Collection
-    match /users/{document=**} {
-      allow read, write: if true;
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Allow users to create and update their own document, or admins to manage users
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    // 2. Official Student & Staff Databases
-    match /official_students/{document=**} {
-      allow read, write: if true;
+    // 2. Official Student & Staff Databases (Master registration lists)
+    match /official_students/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
-    match /official_staff/{document=**} {
-      allow read, write: if true;
+    match /official_staff/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 3. Event Attendance Collection
-    match /event_attendance/{document=**} {
-      allow read, write: if true;
+    // Students can record attendance when scanning QR; only admins can modify/delete attendance
+    match /event_attendance/{attendanceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
-    // 4. Posts Collection and all subcollections (likes, comments, replies, reactions)
-    match /posts/{document=**} {
-      allow read, write: if true;
+    // 4. Posts Collection and all subcollections
+    // Verified users can create posts. Authors or admins can edit/delete.
+    // Authenticated users can update like/comment counters.
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.authorUid == request.auth.uid ||
+        resource.data.author == request.auth.uid
+      );
+
+      // Subcollections: likes, comments, replies
+      match /likes/{userId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      }
+
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update: if isAuthenticated();
+        allow delete: if isAuthenticated() && (
+          isAdmin() ||
+          resource.data.authorUid == request.auth.uid ||
+          resource.data.uid == request.auth.uid
+        );
+
+        match /reactions/{userId} {
+          allow read: if isAuthenticated();
+          allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+        }
+
+        match /replies/{replyId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated();
+          allow update: if isAuthenticated();
+          allow delete: if isAuthenticated() && (
+            isAdmin() ||
+            resource.data.authorUid == request.auth.uid ||
+            resource.data.uid == request.auth.uid
+          );
+        }
+      }
     }
 
     // 5. Moderation Queue Collection
-    match /moderation_queue/{document=**} {
-      allow read, write: if true;
+    // Students can flag/report posts; only admins can view the queue and resolve flags.
+    match /moderation_queue/{queueId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     // 6. Lost & Found Marketplace Collection
-    match /lost_found/{document=**} {
-      allow read, write: if true;
+    match /lost_found/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.authorUid == request.auth.uid ||
+        resource.data.uid == request.auth.uid
+      );
     }
 
     // 7. Notifications Collection
-    match /notifications/{document=**} {
-      allow read, write: if true;
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     // 8. Analytics Summary
-    match /analytics_summary/{document=**} {
-      allow read, write: if true;
+    match /analytics_summary/{summaryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 9. Events Collection
-    match /events/{document=**} {
-      allow read, write: if true;
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 10. Direct Chats & Messages
-    match /chats/{document=**} {
-      allow read, write: if true;
+    match /chats/{chatId} {
+      allow read, write: if isAuthenticated();
+
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
     }
 
-    // 11. System Configuration
-    match /system_config/{document=**} {
-      allow read, write: if true;
+    // 11. System Configuration (Cloudinary credentials, AI settings)
+    match /system_config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 12. Editorial Board & Staff Members
-    match /editorial_members/{document=**} {
-      allow read, write: if true;
+    match /editorial_members/{memberId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // 13. Campus Voting Polls & Student Vote Records
-    match /voting_polls/{document=**} {
-      allow read, write: if true;
+    match /voting_polls/{pollId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
-    match /vote_records/{document=**} {
-      allow read, write: if true;
+    match /vote_records/{voteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
   }
 }
-
-

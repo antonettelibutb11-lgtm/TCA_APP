@@ -32,6 +32,7 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/tvAddMemberDialogTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-black"
@@ -41,6 +42,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvAddMemberDialogSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Add to official staff directory &amp; chart"
@@ -107,6 +109,7 @@
             </FrameLayout>
 
             <TextView
+                android:id="@+id/tvMemberPhotoSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"

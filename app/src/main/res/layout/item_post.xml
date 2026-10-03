@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="5dp"
             android:fontFamily="sans-serif-bold"
-            android:text="📌 Pinned Advisory: Literary Awards Night"
+            android:text="Pinned Advisory"
             android:textColor="@color/purple_primary_text"
             android:textSize="11sp" />
     </LinearLayout>
@@ -90,9 +90,26 @@
         android:layout_marginTop="6dp"
         android:fontFamily="sans-serif"
         android:lineSpacingExtra="1.5dp"
+        android:maxLines="3"
+        android:ellipsize="end"
         android:text="Announcing the Annual BISU Literary &amp; Creative Writing Contest! Submit your original poems, essays, and short stories before August 30. Outstanding student works will be featured on The Campus Access Hub!"
         android:textColor="@color/text_primary"
         android:textSize="12.5sp" />
+
+    <TextView
+        android:id="@+id/tvSeeMore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="See more"
+        android:textColor="@color/purple_primary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:paddingEnd="6dp"
+        android:visibility="gone" />
 
     <RelativeLayout
         android:id="@+id/layoutMediaContainer"
@@ -136,45 +153,53 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <!-- 1. Like (Outline Heart / Filled Heart) -->
         <LinearLayout
             android:id="@+id/btnLike"
             android:layout_width="0dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvLikeIcon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="👍"
-                android:textSize="12sp" />
+            <ImageView
+                android:id="@+id/ivLikeIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_heart_outline" />
 
             <TextView
                 android:id="@+id/tvLikeCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:text="245"
+                android:text="0"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
+
+            <!-- Hidden legacy view for ID compatibility -->
+            <TextView
+                android:id="@+id/tvLikeIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
         </LinearLayout>
 
+        <!-- 2. Comment (Outline Speech Bubble) -->
         <LinearLayout
             android:id="@+id/btnComment"
             android:layout_width="0dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💬"
-                android:textSize="12sp" />
+            <ImageView
+                android:id="@+id/ivCommentIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chat_outline" />
 
             <TextView
                 android:id="@+id/tvCommentLabel"
@@ -183,67 +208,40 @@
                 android:layout_marginStart="4dp"
                 android:text="0"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- 3. Repost (Outline Repost Arrows) -->
         <LinearLayout
             android:id="@+id/btnRepost"
             android:layout_width="0dp"
-            android:layout_height="28dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔁"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/btnDownloadPost"
-            android:layout_width="0dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:src="@drawable/ic_download"
-                app:tint="@color/text_secondary" />
-
-            <TextView
-                android:id="@+id/tvDownloadLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="3dp"
-                android:text="Save"
-                android:textColor="@color/text_secondary"
-                android:textSize="10.5sp"
-                android:textStyle="bold" />
+                android:id="@+id/ivRepostIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_repost_outline" />
         </LinearLayout>
 
+        <!-- 4. Send / Share (Outline Paper Airplane) -->
         <LinearLayout
-            android:id="@+id/btnReportPost"
+            android:id="@+id/btnSendPost"
             android:layout_width="0dp"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:layout_weight="1"
             android:gravity="center"
             android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🚩 Report"
-                android:textColor="@color/text_secondary"
-                android:textSize="10.5sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/ivSendIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_send_share_outline" />
         </LinearLayout>
 
     </LinearLayout>
