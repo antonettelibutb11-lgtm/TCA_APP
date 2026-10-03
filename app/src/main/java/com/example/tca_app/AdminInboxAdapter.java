@@ -26,8 +26,6 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
 
     private final List<ChatConversation> conversationList;
     private final OnConversationActionListener listener;
-    private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM d", Locale.getDefault());
 
     public AdminInboxAdapter(List<ChatConversation> conversationList, OnConversationActionListener listener) {
         this.conversationList = conversationList;
@@ -78,18 +76,7 @@ public class AdminInboxAdapter extends RecyclerView.Adapter<AdminInboxAdapter.Vi
 
         // Formatted timestamp
         long ts = item.getLastMessageTimestamp();
-        if (ts > 0) {
-            long now = System.currentTimeMillis();
-            if (DateUtils.isToday(ts)) {
-                holder.tvInquiryTimestamp.setText(timeFormat.format(new Date(ts)));
-            } else if (now - ts < 48 * 60 * 60 * 1000L) {
-                holder.tvInquiryTimestamp.setText("Yesterday");
-            } else {
-                holder.tvInquiryTimestamp.setText(dateFormat.format(new Date(ts)));
-            }
-        } else {
-            holder.tvInquiryTimestamp.setText("");
-        }
+        holder.tvInquiryTimestamp.setText(TimeUtils.getInquiryTimeString(ts));
 
         // Unread indicator dot (shows if last sender was student)
         if (item.isUnread()) {

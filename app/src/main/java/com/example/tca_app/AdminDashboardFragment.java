@@ -83,6 +83,15 @@ public class AdminDashboardFragment extends Fragment {
             });
         }
 
+        View btnAdminOpenArchivedPosts = view.findViewById(R.id.btnAdminOpenArchivedPosts);
+        if (btnAdminOpenArchivedPosts != null) {
+            btnAdminOpenArchivedPosts.setOnClickListener(v -> {
+                if (getContext() != null) {
+                    startActivity(new android.content.Intent(getContext(), ArchivedPostsActivity.class));
+                }
+            });
+        }
+
         // Bind Real-Time Donut Legend Percentage TextViews
         tvPctAll = view.findViewById(R.id.tvPctAll);
         tvPctAcademics = view.findViewById(R.id.tvPctAcademics);

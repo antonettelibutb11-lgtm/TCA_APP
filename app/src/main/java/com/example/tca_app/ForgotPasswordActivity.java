@@ -319,8 +319,8 @@ public class ForgotPasswordActivity extends AppCompatActivity {
             return;
         }
 
-        // Accepts actual generated OTP or bypass 123456
-        if (entered.equals(generatedCode) || entered.equals("123456")) {
+        // Accepts only the authentic generated code
+        if (entered.equals(generatedCode)) {
             if (rootContainer != null) {
                 AutoTransition transition = new AutoTransition();
                 transition.setDuration(220);

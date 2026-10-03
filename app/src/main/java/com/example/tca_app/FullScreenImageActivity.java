@@ -21,6 +21,20 @@ public class FullScreenImageActivity extends AppCompatActivity {
                 
         setContentView(R.layout.activity_full_screen_image);
 
+        android.view.View topBar = findViewById(R.id.layoutTopBar);
+        if (topBar != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(topBar, (v, insets) -> {
+                androidx.core.graphics.Insets bars = insets.getInsets(
+                        androidx.core.view.WindowInsetsCompat.Type.statusBars() |
+                        androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                );
+                int topPadding = bars.top > 0 ? bars.top + (int) (12 * getResources().getDisplayMetrics().density)
+                        : (int) (54 * getResources().getDisplayMetrics().density);
+                v.setPadding(v.getPaddingLeft(), topPadding, v.getPaddingRight(), (int) (14 * getResources().getDisplayMetrics().density));
+                return insets;
+            });
+        }
+
         ImageView ivFullScreenImage = findViewById(R.id.ivFullScreenImage);
         ImageView btnClose = findViewById(R.id.btnClose);
         TextView tvCounter = findViewById(R.id.tvCounter);

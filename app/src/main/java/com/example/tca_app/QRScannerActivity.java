@@ -494,8 +494,9 @@ public class QRScannerActivity extends AppCompatActivity {
             final String finalDept = dept;
 
             // Atomic vote increment using FieldValue
+            String sanitizedOptionKey = selectedOption != null ? selectedOption.replace(".", "_") : "";
             Map<String, Object> voteUpdate = new HashMap<>();
-            voteUpdate.put("votesCount." + selectedOption, FieldValue.increment(1));
+            voteUpdate.put("votesCount." + sanitizedOptionKey, FieldValue.increment(1));
             voteUpdate.put("totalVotes", FieldValue.increment(1));
             voteUpdate.put("voterUids", FieldValue.arrayUnion(uid));
 

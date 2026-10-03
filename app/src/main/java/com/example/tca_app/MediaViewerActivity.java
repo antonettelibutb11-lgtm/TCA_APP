@@ -21,6 +21,23 @@ public class MediaViewerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_media_viewer);
 
+        android.view.View topBar = findViewById(R.id.layoutTopBarGallery);
+        if (topBar != null) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(topBar, (v, insets) -> {
+                androidx.core.graphics.Insets bars = insets.getInsets(
+                        androidx.core.view.WindowInsetsCompat.Type.statusBars() |
+                        androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                );
+                int statusBarHeight = bars.top;
+                int extraMargin = (int) (12 * getResources().getDisplayMetrics().density);
+                int topPadding = statusBarHeight > 0 
+                        ? statusBarHeight + extraMargin 
+                        : (int) (54 * getResources().getDisplayMetrics().density);
+                v.setPadding(v.getPaddingLeft(), topPadding, v.getPaddingRight(), (int) (14 * getResources().getDisplayMetrics().density));
+                return insets;
+            });
+        }
+
         vpMediaGallery = findViewById(R.id.vpMediaGallery);
         tvGalleryCounter = findViewById(R.id.tvGalleryCounter);
         btnCloseGallery = findViewById(R.id.btnCloseGallery);

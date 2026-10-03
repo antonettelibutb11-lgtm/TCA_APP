@@ -73,6 +73,7 @@
             android:paddingHorizontal="16dp">
 
             <TextView
+                android:id="@+id/tvProfileName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
@@ -84,6 +85,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvProfileBio"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
@@ -138,14 +140,24 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tabReposts"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="Reposts"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
                     android:id="@+id/tabGallery"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:background="@drawable/bg_chip_selected"
                     android:gravity="center"
                     android:paddingHorizontal="16dp"
                     android:text="Gallery"
-                    android:textColor="@color/white"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp"
                     android:textStyle="bold" />
 

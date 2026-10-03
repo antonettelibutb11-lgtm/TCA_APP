@@ -37,7 +37,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
     private final List<ChatMessage> messageList;
     private final String currentUserId;
     private boolean isCurrentUserAdmin = false;
-    private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.US);
     private OnMessageActionListener actionListener;
 
     public ChatMessageAdapter(List<ChatMessage> messageList, String currentUserId) {
@@ -65,7 +64,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
         ChatMessage msg = messageList.get(position);
         Context context = holder.itemView.getContext();
-        String formattedTime = timeFormat.format(new Date(msg.getTimestamp()));
+        String formattedTime = TimeUtils.getChatMessageTimeString(msg.getTimestamp());
 
         String text = msg.getText();
         String imageUrl = msg.getImageUrl();

@@ -286,26 +286,34 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.btnMoreOptions.setOnClickListener(v -> showProfessionalPostOptions(v.getContext(), post, holder));
         }
 
-        if (holder.ivLikeIcon != null) {
-            if (post.isLikedByCurrentUser()) {
-                holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_filled);
-                holder.ivLikeIcon.clearColorFilter();
-            } else {
-                holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_outline);
-                holder.ivLikeIcon.clearColorFilter();
-            }
-        }
+        // Bind Like & Reaction UI
+        updatePostLikeUI(holder, post);
 
-        if (post.isLikedByCurrentUser() && holder.tvLikeCount != null) {
-            holder.tvLikeCount.setTextColor(holder.itemView.getContext().getResources().getColor(R.color.purple_primary, null));
-        } else if (holder.tvLikeCount != null) {
-            holder.tvLikeCount.setTextColor(holder.itemView.getContext().getResources().getColor(R.color.text_secondary, null));
+        // Fetch user reaction from likes/{uid} subcollection if not loaded yet
+        if (!post.isLikeStatusLoaded() && post.getId() != null && !post.getId().isEmpty() && !"guest_user".equals(uid)) {
+            FirebaseFirestore.getInstance()
+                    .collection("posts").document(post.getId())
+                    .collection("likes").document(uid)
+                    .get()
+                    .addOnSuccessListener(likeDoc -> {
+                        if (likeDoc != null && likeDoc.exists()) {
+                            post.setLikedByCurrentUser(true);
+                            String r = likeDoc.getString("reaction");
+                            if (r == null || r.isEmpty()) r = likeDoc.getString("type");
+                            post.setCurrentUserReaction(r != null && !r.isEmpty() ? r : "❤️");
+                        } else {
+                            post.setLikedByCurrentUser(false);
+                            post.setCurrentUserReaction(null);
+                        }
+                        post.setLikeStatusLoaded(true);
+                        updatePostLikeUI(holder, post);
+                    })
+                    .addOnFailureListener(e -> post.setLikeStatusLoaded(true));
         }
 
         // Tap Like -> Anti-Race Condition Atomic Increment & Button Lock
         // SCALABILITY FIX: Likes are now stored in subcollection posts/{postId}/likes/{uid}
-        // instead of an unbounded likedByUsers array inside the document. This avoids the
-        // Firestore 1MB document limit that would be hit on viral posts with thousands of likes.
+        // instead of an unbounded likedByUsers array inside the document.
         holder.btnLike.setOnClickListener(v -> {
             if (post.getId() == null || post.getId().isEmpty()) return;
 
@@ -324,12 +332,11 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     .collection("posts").document(post.getId())
                                     .update("likeCount", FieldValue.increment(-1));
                             post.setLikedByCurrentUser(false);
+                            post.setCurrentUserReaction(null);
+                            post.setLikeStatusLoaded(true);
                             post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
                             holder.btnLike.setEnabled(true);
-                            int latestPos = holder.getAdapterPosition();
-                            if (latestPos != RecyclerView.NO_POSITION) {
-                                notifyItemChanged(latestPos);
-                            }
+                            updatePostLikeUI(holder, post);
                             Toast.makeText(v.getContext(), "Unliked post", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
@@ -340,20 +347,22 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                 // LIKE: Write the user's like document to the subcollection
                 Map<String, Object> likeData = new HashMap<>();
                 likeData.put("uid", uid);
+                likeData.put("reaction", "❤️");
+                likeData.put("type", "❤️");
                 likeData.put("timestamp", FieldValue.serverTimestamp());
                 likeRef.set(likeData)
                         .addOnSuccessListener(aVoid -> {
                             FirebaseFirestore.getInstance()
                                     .collection("posts").document(post.getId())
-                                    .update("likeCount", FieldValue.increment(1));
+                                    .update("likeCount", FieldValue.increment(1),
+                                            "reactionType", "❤️");
                             post.setLikedByCurrentUser(true);
+                            post.setCurrentUserReaction("❤️");
+                            post.setLikeStatusLoaded(true);
                             post.setLikeCount(post.getLikeCount() + 1);
                             holder.btnLike.setEnabled(true);
-                            int latestPos = holder.getAdapterPosition();
-                            if (latestPos != RecyclerView.NO_POSITION) {
-                                notifyItemChanged(latestPos);
-                            }
-                            ChatNotificationHelper.notifyPostLiked(v.getContext(), post, uid, getSafeDisplayName(FirebaseAuth.getInstance().getCurrentUser()), "👍");
+                            updatePostLikeUI(holder, post);
+                            ChatNotificationHelper.notifyPostLiked(v.getContext(), post, uid, getSafeDisplayName(FirebaseAuth.getInstance().getCurrentUser()), "❤️");
                             Toast.makeText(v.getContext(), "Liked post.", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
@@ -374,13 +383,13 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             holder.btnComment.setOnClickListener(v -> showCommentsDialog(v.getContext(), post));
         }
 
-        // Tap Repost -> Repost to Campus Profile Feed via Firestore
+        // Tap Repost -> Repost to Student's Profile (like Facebook)
         if (holder.btnRepost != null) {
             holder.btnRepost.setOnClickListener(v -> {
                 Context ctx = v.getContext();
                 new AlertDialog.Builder(ctx)
-                        .setTitle("Repost to Feed")
-                        .setMessage("Share this post to your profile and campus feed?")
+                        .setTitle("Repost")
+                        .setMessage("Share this post to your profile?")
                         .setPositiveButton("Repost", (dialog, which) -> {
                             holder.btnRepost.setEnabled(false);
                             String currentUid = uid;
@@ -393,6 +402,10 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                             repostMap.put("postMeta", "Just now • Reposted from " + post.getAuthorName());
                             repostMap.put("content", post.getContent() != null ? post.getContent() : "");
                             repostMap.put("badgeText", "Repost");
+                            repostMap.put("isRepost", true);
+                            repostMap.put("isStudentRepost", true);
+                            repostMap.put("originalPostId", post.getId());
+                            repostMap.put("originalAuthor", post.getAuthorName());
                             repostMap.put("category", post.getCategory() != null ? post.getCategory() : "General");
                             repostMap.put("isPinned", false);
                             repostMap.put("isAiPick", false);
@@ -412,7 +425,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
                                     .add(repostMap)
                                     .addOnSuccessListener(docRef -> {
                                         holder.btnRepost.setEnabled(true);
-                                        Toast.makeText(ctx, "Reposted successfully to your feed.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(ctx, "Reposted to your profile.", Toast.LENGTH_SHORT).show();
                                     })
                                     .addOnFailureListener(e -> {
                                         holder.btnRepost.setEnabled(true);
@@ -593,6 +606,51 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
         dialog.show();
     }
 
+    private void updatePostLikeUI(PostViewHolder holder, Post post) {
+        if (holder == null || post == null) return;
+
+        int count = Math.max(0, post.getLikeCount());
+        if (holder.tvLikeCount != null) {
+            holder.tvLikeCount.setText(String.valueOf(count));
+            if (post.isLikedByCurrentUser()) {
+                holder.tvLikeCount.setTextColor(holder.itemView.getContext().getResources().getColor(R.color.purple_primary, null));
+            } else {
+                holder.tvLikeCount.setTextColor(holder.itemView.getContext().getResources().getColor(R.color.text_secondary, null));
+            }
+        }
+
+        String reaction = post.getCurrentUserReaction();
+        if (post.isLikedByCurrentUser()) {
+            if (reaction != null && !reaction.isEmpty() && !"❤️".equals(reaction)) {
+                if (holder.tvLikeIcon != null) {
+                    holder.tvLikeIcon.setText(reaction);
+                    holder.tvLikeIcon.setVisibility(View.VISIBLE);
+                }
+                if (holder.ivLikeIcon != null) {
+                    holder.ivLikeIcon.setVisibility(View.GONE);
+                }
+            } else {
+                if (holder.tvLikeIcon != null) {
+                    holder.tvLikeIcon.setVisibility(View.GONE);
+                }
+                if (holder.ivLikeIcon != null) {
+                    holder.ivLikeIcon.setVisibility(View.VISIBLE);
+                    holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_filled);
+                    holder.ivLikeIcon.clearColorFilter();
+                }
+            }
+        } else {
+            if (holder.tvLikeIcon != null) {
+                holder.tvLikeIcon.setVisibility(View.GONE);
+            }
+            if (holder.ivLikeIcon != null) {
+                holder.ivLikeIcon.setVisibility(View.VISIBLE);
+                holder.ivLikeIcon.setImageResource(R.drawable.ic_heart_outline);
+                holder.ivLikeIcon.clearColorFilter();
+            }
+        }
+    }
+
     private void showReactionPicker(Context context, Post post, PostViewHolder holder) {
         View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_reactions_horizontal, null);
 
@@ -703,52 +761,99 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             else if (v == tvReactSad) emoji = "😢";
             else if (v == tvReactAngry) emoji = "😡";
 
+            final String selectedEmoji = emoji;
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
             String uid = (currentUser != null && currentUser.getUid() != null) ? currentUser.getUid() : "guest_user";
 
-            if (post.isLikedByCurrentUser()) {
-                Toast.makeText(context, "You have already reacted to this post.", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-                return;
-            }
+            boolean alreadyLiked = post.isLikedByCurrentUser();
+            String currentReaction = post.getCurrentUserReaction();
+            boolean isSameReaction = alreadyLiked && selectedEmoji.equals(currentReaction != null && !currentReaction.isEmpty() ? currentReaction : "❤️");
 
             // Animate selection
-            final String finalEmoji = emoji;
             v.animate().scaleX(1.5f).scaleY(1.5f).setDuration(150).withEndAction(() -> {
                 dialog.dismiss();
-                
-                if (post.getId() != null && !post.getId().isEmpty()) {
-                holder.btnLike.setEnabled(false);
-                // SCALABILITY FIX: Write reaction to the likes subcollection
-                Map<String, Object> reactionData = new HashMap<>();
-                reactionData.put("uid", uid);
-                reactionData.put("reaction", finalEmoji);
-                reactionData.put("timestamp", FieldValue.serverTimestamp());
 
-                FirebaseFirestore.getInstance()
+                if (post.getId() == null || post.getId().isEmpty()) return;
+                holder.btnLike.setEnabled(false);
+
+                com.google.firebase.firestore.DocumentReference likeRef = FirebaseFirestore.getInstance()
                         .collection("posts").document(post.getId())
-                        .collection("likes").document(uid)
-                        .set(reactionData)
-                        .addOnSuccessListener(aVoid -> {
-                            FirebaseFirestore.getInstance()
-                                    .collection("posts").document(post.getId())
-                                    .update("likeCount", FieldValue.increment(1),
-                                            "reactionType", finalEmoji);
-                            post.setLikedByCurrentUser(true);
-                            post.setLikeCount(post.getLikeCount() + 1);
-                            holder.btnLike.setEnabled(true);
-                            int latestPos = holder.getAdapterPosition();
-                            if (latestPos != RecyclerView.NO_POSITION) {
-                                notifyItemChanged(latestPos);
-                            }
-                            ChatNotificationHelper.notifyPostLiked(context, post, uid, getSafeDisplayName(currentUser), finalEmoji);
-                            Toast.makeText(context, "Reacted " + finalEmoji + " to post!", Toast.LENGTH_SHORT).show();
-                        })
-                        .addOnFailureListener(e -> {
-                            holder.btnLike.setEnabled(true);
-                            Toast.makeText(context, "Failed to react: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        });
-            }
+                        .collection("likes").document(uid);
+
+                if (isSameReaction) {
+                    // 1. Tapping the exact same reaction again -> UNREACT (removes reaction, -1 count)
+                    likeRef.delete()
+                            .addOnSuccessListener(aVoid -> {
+                                FirebaseFirestore.getInstance()
+                                        .collection("posts").document(post.getId())
+                                        .update("likeCount", FieldValue.increment(-1));
+                                post.setLikedByCurrentUser(false);
+                                post.setCurrentUserReaction(null);
+                                post.setLikeStatusLoaded(true);
+                                post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
+                                holder.btnLike.setEnabled(true);
+                                updatePostLikeUI(holder, post);
+                                Toast.makeText(context, "Reaction removed.", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                holder.btnLike.setEnabled(true);
+                                Toast.makeText(context, "Failed to remove reaction: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                } else if (alreadyLiked) {
+                    // 2. Already reacted, but picked a DIFFERENT emoji -> SWITCH / REPLACE REACTION
+                    // TOTAL COUNT DOES NOT INCREMENT! (Kas-a ra mka-react ang usa ka account, dili counted kaduha!)
+                    Map<String, Object> reactionData = new HashMap<>();
+                    reactionData.put("uid", uid);
+                    reactionData.put("reaction", selectedEmoji);
+                    reactionData.put("type", selectedEmoji);
+                    reactionData.put("timestamp", FieldValue.serverTimestamp());
+
+                    likeRef.set(reactionData)
+                            .addOnSuccessListener(aVoid -> {
+                                FirebaseFirestore.getInstance()
+                                        .collection("posts").document(post.getId())
+                                        .update("reactionType", selectedEmoji);
+                                post.setLikedByCurrentUser(true);
+                                post.setCurrentUserReaction(selectedEmoji);
+                                post.setLikeStatusLoaded(true);
+                                // likeCount stays unchanged!
+                                holder.btnLike.setEnabled(true);
+                                updatePostLikeUI(holder, post);
+                                ChatNotificationHelper.notifyPostLiked(context, post, uid, getSafeDisplayName(currentUser), selectedEmoji);
+                                Toast.makeText(context, "Reaction changed to " + selectedEmoji, Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                holder.btnLike.setEnabled(true);
+                                Toast.makeText(context, "Failed to update reaction: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                } else {
+                    // 3. First time reacting -> ADD REACTION (+1 count)
+                    Map<String, Object> reactionData = new HashMap<>();
+                    reactionData.put("uid", uid);
+                    reactionData.put("reaction", selectedEmoji);
+                    reactionData.put("type", selectedEmoji);
+                    reactionData.put("timestamp", FieldValue.serverTimestamp());
+
+                    likeRef.set(reactionData)
+                            .addOnSuccessListener(aVoid -> {
+                                FirebaseFirestore.getInstance()
+                                        .collection("posts").document(post.getId())
+                                        .update("likeCount", FieldValue.increment(1),
+                                                "reactionType", selectedEmoji);
+                                post.setLikedByCurrentUser(true);
+                                post.setCurrentUserReaction(selectedEmoji);
+                                post.setLikeStatusLoaded(true);
+                                post.setLikeCount(post.getLikeCount() + 1);
+                                holder.btnLike.setEnabled(true);
+                                updatePostLikeUI(holder, post);
+                                ChatNotificationHelper.notifyPostLiked(context, post, uid, getSafeDisplayName(currentUser), selectedEmoji);
+                                Toast.makeText(context, "Reacted " + selectedEmoji + " to post!", Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                holder.btnLike.setEnabled(true);
+                                Toast.makeText(context, "Failed to react: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                }
             });
         };
 

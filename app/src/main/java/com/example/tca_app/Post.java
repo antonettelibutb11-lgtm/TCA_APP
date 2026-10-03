@@ -23,6 +23,9 @@ public class Post {
     private java.util.List<String> mediaHashes = new java.util.ArrayList<>();
     private String folderName = "";
     private String moderationStatus = "APPROVED";
+    private boolean isRepost = false;
+    private String originalPostId = "";
+    private String originalAuthor = "";
     // SCALABILITY FIX: likedByUsers array removed from the document model.
     // Likes are now stored in the subcollection posts/{postId}/likes/{userId}.
     // isLikedByCurrentUser is a transient in-memory flag set by the adapter.
@@ -111,9 +114,26 @@ public class Post {
     public String getModerationStatus() { return moderationStatus != null ? moderationStatus : "APPROVED"; }
     public void setModerationStatus(String moderationStatus) { this.moderationStatus = moderationStatus; }
 
+    public boolean isRepost() { return isRepost; }
+    public void setRepost(boolean repost) { isRepost = repost; }
+
+    public String getOriginalPostId() { return originalPostId != null ? originalPostId : ""; }
+    public void setOriginalPostId(String originalPostId) { this.originalPostId = originalPostId; }
+
+    public String getOriginalAuthor() { return originalAuthor != null ? originalAuthor : ""; }
+    public void setOriginalAuthor(String originalAuthor) { this.originalAuthor = originalAuthor; }
+
     /** Transient in-memory flag — NOT persisted to Firestore. Set by PostAdapter after a subcollection check. */
     public boolean isLikedByCurrentUser() { return isLikedByCurrentUser; }
     public void setLikedByCurrentUser(boolean liked) { this.isLikedByCurrentUser = liked; }
+
+    private transient String currentUserReaction = null;
+    public String getCurrentUserReaction() { return currentUserReaction; }
+    public void setCurrentUserReaction(String reaction) { this.currentUserReaction = reaction; }
+
+    private transient boolean isLikeStatusLoaded = false;
+    public boolean isLikeStatusLoaded() { return isLikeStatusLoaded; }
+    public void setLikeStatusLoaded(boolean loaded) { this.isLikeStatusLoaded = loaded; }
 
     /** Transient in-memory flag for UI expansion (See more / See less). */
     private transient boolean isExpanded = false;

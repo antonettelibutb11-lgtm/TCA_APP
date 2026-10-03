@@ -56,8 +56,14 @@ public class PostRepository {
 
         removePostsListener(); // clean up any existing listener
 
-        Query query = db.collection("posts")
-                .orderBy("timestamp", Query.Direction.DESCENDING)
+        Query query = db.collection("posts");
+
+        // Server-side category filter to prevent 'Empty Feed' bug when latest 50 posts don't match
+        if (!isNullOrEmpty(category) && !"All".equalsIgnoreCase(category)) {
+            query = query.whereEqualTo("category", category);
+        }
+
+        query = query.orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(PAGE_SIZE);
 
         postsListenerRegistration = query.addSnapshotListener((snapshots, error) -> {
@@ -81,11 +87,12 @@ public class PostRepository {
                     continue;
                 }
 
-                String cat = doc.getString("category");
-
-                // Client-side category filter (avoids composite index requirement)
-                if (!isNullOrEmpty(category) && !"All".equalsIgnoreCase(category)
-                        && !category.equalsIgnoreCase(cat)) {
+                Boolean isRepost = doc.getBoolean("isRepost");
+                Boolean isStudentRepost = doc.getBoolean("isStudentRepost");
+                String badgeText = doc.getString("badgeText");
+                if (Boolean.TRUE.equals(isRepost) || Boolean.TRUE.equals(isStudentRepost) || "Repost".equalsIgnoreCase(badgeText)) {
+                    // Student reposts belong strictly to the student's personal profile (like Facebook),
+                    // not on the official Campus Feed or Admin view
                     continue;
                 }
 
@@ -213,6 +220,10 @@ public class PostRepository {
         repostMap.put("postMeta", "Just now • Reposted from " + originalPost.getAuthorName());
         repostMap.put("content", originalPost.getContent());
         repostMap.put("badgeText", "Repost");
+        repostMap.put("isRepost", true);
+        repostMap.put("isStudentRepost", true);
+        repostMap.put("originalPostId", originalPost.getId());
+        repostMap.put("originalAuthor", originalPost.getAuthorName());
         repostMap.put("category", isNullOrEmpty(originalPost.getCategory()) ? "General" : originalPost.getCategory());
         repostMap.put("isPinned", false);
         repostMap.put("isAiPick", false);
@@ -343,9 +354,11 @@ public class PostRepository {
         if (timestamp == null || timestamp == 0) timestamp = now;
         if (category == null || category.isEmpty()) category = "Events";
 
+        String postMeta = TimeUtils.getRelativeTimeString(null, timestamp, category != null && !category.isEmpty() ? category : "Events");
+
         Post post = new Post(
                 authorName != null ? authorName : "BISU Community",
-                "", // postMeta set below by caller with Context
+                postMeta,
                 content != null ? content : "",
                 badgeText != null ? badgeText : "",
                 category,
@@ -362,6 +375,11 @@ public class PostRepository {
         post.setVideoUri(videoUri);
         post.setDocUri(docUri);
         post.setMediaUris(mediaUris);
+        Boolean isRepost = doc.getBoolean("isRepost");
+        Boolean isStudentRepost = doc.getBoolean("isStudentRepost");
+        post.setRepost(Boolean.TRUE.equals(isRepost) || Boolean.TRUE.equals(isStudentRepost) || "Repost".equalsIgnoreCase(badgeText));
+        post.setOriginalPostId(doc.getString("originalPostId"));
+        post.setOriginalAuthor(doc.getString("originalAuthor"));
         return post;
     }
 

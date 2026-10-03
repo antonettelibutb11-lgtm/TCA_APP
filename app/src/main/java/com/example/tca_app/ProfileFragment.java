@@ -37,7 +37,8 @@ import java.util.Map;
 
 public class ProfileFragment extends Fragment {
 
-    private TextView tabAll, tabGallery, tabVideos;
+    private TextView tabAll, tabReposts, tabGallery, tabVideos;
+    private TextView tvProfileName, tvProfileBio;
     private RecyclerView rvProfilePosts;
     private androidx.core.widget.NestedScrollView scrollViewProfile;
     private PostAdapter adapter;
@@ -53,6 +54,8 @@ public class ProfileFragment extends Fragment {
     private ImageView imgProfileLogo;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private String currentProfileImageUrl = null;
+    private boolean isCurrentUserAdmin = false;
+    private String currentCategory = "ALL";
 
     @Nullable
     @Override
@@ -116,8 +119,12 @@ public class ProfileFragment extends Fragment {
 
         // Bind Profile Category Navigation Tabs
         tabAll = view.findViewById(R.id.tabAll);
+        tabReposts = view.findViewById(R.id.tabReposts);
         tabGallery = view.findViewById(R.id.tabGallery);
         tabVideos = view.findViewById(R.id.tabVideos);
+
+        tvProfileName = view.findViewById(R.id.tvProfileName);
+        tvProfileBio = view.findViewById(R.id.tvProfileBio);
 
         tvEmptyStateProfile = view.findViewById(R.id.tvEmptyStateProfile);
 
@@ -159,6 +166,7 @@ public class ProfileFragment extends Fragment {
         if (btnMessageUser != null) {
             AuthUtils.checkCurrentUserAccess((isApprovedMember, isAdmin, role) -> {
                 if (!isAdded() || getContext() == null) return;
+                this.isCurrentUserAdmin = isAdmin;
                 if (isAdmin) {
                     btnMessageUser.setText("Student Inquiries");
                     btnMessageUser.setOnClickListener(v -> {
@@ -166,14 +174,28 @@ public class ProfileFragment extends Fragment {
                             startActivity(new Intent(getContext(), AdminInboxActivity.class));
                         }
                     });
+                    // Admin represents the official campus publication, so student Reposts tab is hidden
+                    if (tabReposts != null) {
+                        tabReposts.setVisibility(View.GONE);
+                    }
+                    if ("REPOSTS".equalsIgnoreCase(currentCategory)) {
+                        selectTab("ALL");
+                    } else {
+                        fetchCategoryPostsFromFirestore(currentCategory != null ? currentCategory : "ALL");
+                    }
                 } else {
                     btnMessageUser.setText("Message");
                     btnMessageUser.setOnClickListener(v -> openAdminDirectMessaging());
+                    if (tabReposts != null) {
+                        tabReposts.setVisibility(View.VISIBLE);
+                    }
+                    fetchCategoryPostsFromFirestore(currentCategory != null ? currentCategory : "ALL");
                 }
             });
         }
 
         if (tabAll != null) tabAll.setOnClickListener(v -> selectTab("ALL"));
+        if (tabReposts != null) tabReposts.setOnClickListener(v -> selectTab("REPOSTS"));
         if (tabGallery != null) tabGallery.setOnClickListener(v -> selectTab("GALLERY"));
         if (tabVideos != null) tabVideos.setOnClickListener(v -> selectTab("VIDEOS"));
 
@@ -295,6 +317,17 @@ public class ProfileFragment extends Fragment {
             });
         }
 
+        View layoutOpenArchivedPosts = dialogView.findViewById(R.id.layoutOpenArchivedPosts);
+        if (layoutOpenArchivedPosts != null) {
+            layoutOpenArchivedPosts.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (getContext() != null) {
+                    Intent intent = new Intent(getContext(), ArchivedPostsActivity.class);
+                    startActivity(intent);
+                }
+            });
+        }
+
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (tvLogoutUserEmail != null) {
             if (currentUser != null) {
@@ -330,12 +363,24 @@ public class ProfileFragment extends Fragment {
     }
 
     private void selectTab(String category) {
+        this.currentCategory = category;
         resetTabStyles();
 
         if ("ALL".equalsIgnoreCase(category)) {
             if (tabAll != null) {
                 tabAll.setBackgroundResource(R.drawable.bg_chip_selected);
                 tabAll.setTextColor(getResources().getColor(R.color.white, null));
+            }
+            if (spinnerGalleryFolder != null) spinnerGalleryFolder.setVisibility(View.GONE);
+            if (rvProfilePosts != null) {
+                rvProfilePosts.setLayoutManager(new LinearLayoutManager(getContext()));
+                rvProfilePosts.setNestedScrollingEnabled(false);
+                rvProfilePosts.setAdapter(adapter);
+            }
+        } else if ("REPOSTS".equalsIgnoreCase(category)) {
+            if (tabReposts != null) {
+                tabReposts.setBackgroundResource(R.drawable.bg_chip_selected);
+                tabReposts.setTextColor(getResources().getColor(R.color.white, null));
             }
             if (spinnerGalleryFolder != null) spinnerGalleryFolder.setVisibility(View.GONE);
             if (rvProfilePosts != null) {
@@ -462,6 +507,36 @@ public class ProfileFragment extends Fragment {
                         continue;
                     }
 
+                    Boolean isRepost = doc.getBoolean("isRepost");
+                    Boolean isStudentRepost = doc.getBoolean("isStudentRepost");
+                    boolean isThisRepost = Boolean.TRUE.equals(isRepost) || Boolean.TRUE.equals(isStudentRepost) || "Repost".equalsIgnoreCase(badgeText);
+
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    String myUid = currentUser != null ? currentUser.getUid() : "";
+
+                    // --- REPOST PRIVACY RULES (like Facebook) ---
+                    // Student reposts belong strictly to that individual student's personal profile.
+                    // The Admin must NEVER see student reposts anywhere.
+                    if (isThisRepost) {
+                        // 1. If viewing user is ADMIN -> NEVER SHOW ANY STUDENT REPOSTS
+                        if (isCurrentUserAdmin) {
+                            continue;
+                        }
+
+                        // 2. If viewing user is STUDENT -> Show ONLY their OWN reposts, and only in REPOSTS or ALL
+                        if (authorUid == null || !authorUid.equals(myUid)) {
+                            continue;
+                        }
+
+                        // 3. In Gallery or Videos tabs -> never show reposts
+                        if ("GALLERY".equalsIgnoreCase(category) || "VIDEOS".equalsIgnoreCase(category)) {
+                            continue;
+                        }
+                    } else if ("REPOSTS".equalsIgnoreCase(category)) {
+                        // In Reposts tab, only reposts should be displayed
+                        continue;
+                    }
+
                     // Also broaden video detection: check mediaUris for cloudinary /video/ pattern
                     // Re-check hasVideo in case videoUri field is missing but mediaUris has videos
                     if (!hasVideo && photoUri != null && (photoUri.contains("/video/") || photoUri.endsWith(".mp4"))) {
@@ -494,6 +569,9 @@ public class ProfileFragment extends Fragment {
                     post.setDocUri(docUri);
                     post.setMediaUris(mediaUris);
                     post.setTimestamp(timestamp != null ? timestamp : now);
+                    post.setRepost(isThisRepost);
+                    post.setOriginalPostId(doc.getString("originalPostId"));
+                    post.setOriginalAuthor(doc.getString("originalAuthor"));
                     allCategoryPosts.add(post);
                     
                     if (folderName != null && !folderName.isEmpty()) {
@@ -577,7 +655,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void resetTabStyles() {
-        TextView[] tabs = {tabAll, tabGallery, tabVideos};
+        TextView[] tabs = {tabAll, tabReposts, tabGallery, tabVideos};
         for (TextView tab : tabs) {
             if (tab != null) {
                 tab.setBackground(null);
@@ -598,9 +676,33 @@ public class ProfileFragment extends Fragment {
                         Boolean isMember = doc.getBoolean("isMember");
                         boolean isAdmin = role != null && ("ADMIN".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role));
                         boolean isApprovedMember = Boolean.TRUE.equals(isMember);
+                        isCurrentUserAdmin = isAdmin;
                         
                         if (adapter != null) {
                             adapter.setAdmin(isAdmin || isApprovedMember);
+                        }
+
+                        if (tvProfileName != null && isAdded()) {
+                            if (isAdmin) {
+                                tvProfileName.setText("The Campus Access");
+                                if (tvProfileBio != null) {
+                                    tvProfileBio.setText("The Campus Access is the Official Student Publication of Bohol Island State University - Balilihan Campus");
+                                }
+                            } else {
+                                String studentName = doc.getString("name");
+                                if (studentName == null || studentName.trim().isEmpty()) {
+                                    studentName = PostAdapter.getSafeDisplayName(user);
+                                }
+                                tvProfileName.setText(studentName);
+                                if (tvProfileBio != null) {
+                                    String department = doc.getString("department");
+                                    if (department != null && !department.trim().isEmpty()) {
+                                        tvProfileBio.setText(department + " Student • BISU Balilihan");
+                                    } else {
+                                        tvProfileBio.setText("Student • Bohol Island State University - Balilihan Campus");
+                                    }
+                                }
+                            }
                         }
 
                         if (doc.getString("profileImageUrl") != null) {

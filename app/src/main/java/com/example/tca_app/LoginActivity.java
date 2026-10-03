@@ -35,13 +35,6 @@ public class LoginActivity extends AppCompatActivity {
         // Initialize Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
-        
-        // AUTO-SETUP CLOUDINARY IN FIRESTORE
-        java.util.Map<String, Object> cloudinaryConfig = new java.util.HashMap<>();
-        cloudinaryConfig.put("cloudName", "k5hxc5ct");
-        cloudinaryConfig.put("uploadPreset", "lh0lmbrs");
-        db.collection("system_config").document("cloudinary").set(cloudinaryConfig);
-
 
         TextView tvLoginTitle = findViewById(R.id.tvLoginTitle);
         TextView tabStudent = findViewById(R.id.tabStudent);

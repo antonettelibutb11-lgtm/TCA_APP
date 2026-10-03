@@ -75,7 +75,11 @@ private PostViewModel postViewModel;
                     getResources().getColor(R.color.gold_accent)
             );
             swipeRefreshLayout.setOnRefreshListener(() -> {
-                listenToFirebasePosts();
+                if (postViewModel != null) {
+                    postViewModel.startListening(selectedCategory);
+                } else {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
             });
         }
 
@@ -129,21 +133,29 @@ private PostViewModel postViewModel;
                     cardCreatePost.setVisibility((isApprovedMember || isAdmin) ? View.VISIBLE : View.GONE);
                 }
             });
-// Initialize ViewModel and observe posts
-postViewModel = new ViewModelProvider(this).get(PostViewModel.class);
-postViewModel.getPostsLiveData().observe(getViewLifecycleOwner(), posts -> {
-    allPostsList.clear();
-    if (posts != null) allPostsList.addAll(posts);
-    filterPosts();
-});
-postViewModel.getErrorLiveData().observe(getViewLifecycleOwner(), err -> {
-    if (err != null) android.widget.Toast.makeText(getContext(), err, android.widget.Toast.LENGTH_SHORT).show();
-});
-// Start listening to posts
-postViewModel.startListening(selectedCategory);
         }
 
-        // Deprecated direct Firebase call removed
+        // Initialize ViewModel and observe posts unconditionally for consistent feed updates
+        postViewModel = new ViewModelProvider(this).get(PostViewModel.class);
+        postViewModel.getPostsLiveData().observe(getViewLifecycleOwner(), posts -> {
+            if (swipeRefreshLayout != null) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+            allPostsList.clear();
+            if (posts != null) allPostsList.addAll(posts);
+            filterPosts();
+        });
+        postViewModel.getErrorLiveData().observe(getViewLifecycleOwner(), err -> {
+            if (swipeRefreshLayout != null) {
+                swipeRefreshLayout.setRefreshing(false);
+            }
+            if (err != null && getContext() != null) {
+                android.widget.Toast.makeText(getContext(), err, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Start listening to posts
+        postViewModel.startListening(selectedCategory);
 
         return view;
     }
@@ -332,24 +344,16 @@ postViewModel.startListening(selectedCategory);
                     }
 
                     String moderationStatus = doc.getString("moderationStatus");
-                    Boolean isDuplicate = doc.getBoolean("isDuplicate");
-                    if ("DELETED".equals(moderationStatus) || "FLAGGED".equals(moderationStatus)
-                            || "ARCHIVED".equals(moderationStatus) || "PENDING".equals(moderationStatus)
-                            || (Boolean.TRUE.equals(isDuplicate) && !"APPROVED".equals(moderationStatus))) {
+                    if ("DELETED".equals(moderationStatus) || "FLAGGED".equals(moderationStatus) || "ARCHIVED".equals(moderationStatus)) {
                         continue;
                     }
 
-                    // Duplicate filter: Prevents identical repeated posts from showing twice on the hub feed
-                    String textKey = content != null ? content.trim().toLowerCase(java.util.Locale.ROOT) : "";
-                    String photoKey = photoUri != null ? photoUri.trim() : "";
-                    String videoKey = videoUri != null ? videoUri.trim() : "";
-                    String postSignature = textKey + "||" + photoKey + "||" + videoKey;
-                    if (!textKey.isEmpty() || !photoKey.isEmpty() || !videoKey.isEmpty()) {
-                        if (seenPostKeys.contains(postSignature)) {
-                            // Repeated post detected — skip duplicate from displaying on feed
-                            continue;
-                        }
-                        seenPostKeys.add(postSignature);
+                    Boolean isRepost = doc.getBoolean("isRepost");
+                    Boolean isStudentRepost = doc.getBoolean("isStudentRepost");
+                    if (Boolean.TRUE.equals(isRepost) || Boolean.TRUE.equals(isStudentRepost) || "Repost".equalsIgnoreCase(badgeText)) {
+                        // Student reposts belong strictly to the student's personal profile (like Facebook),
+                        // and do not appear on the official Campus Feed or Admin view
+                        continue;
                     }
 
                     if (timestamp == null || timestamp == 0) {

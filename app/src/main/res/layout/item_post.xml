@@ -169,6 +169,13 @@
                 android:src="@drawable/ic_heart_outline" />
 
             <TextView
+                android:id="@+id/tvLikeIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/tvLikeCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -177,13 +184,6 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="11.5sp"
                 android:textStyle="bold" />
-
-            <!-- Hidden legacy view for ID compatibility -->
-            <TextView
-                android:id="@+id/tvLikeIcon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
         </LinearLayout>
 
         <!-- 2. Comment (Outline Speech Bubble) -->
